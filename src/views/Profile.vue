@@ -1,6 +1,5 @@
 <template>
-  <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png" />
+  <div class="profile">
     <h1>Welcome {{ user.firstName ? user.firstName + ' ' + user.lastName : ''  }}</h1>
   </div>
 </template>
@@ -11,7 +10,7 @@ import { Component, Vue } from "vue-property-decorator";
 @Component({
   components: {}
 })
-export default class Home extends Vue {
+export default class Profile extends Vue {
   get user() {
     return this.$store.getters.user;
   }
