@@ -1,83 +1,87 @@
 <template>
-  <div class="--contacts">
-    <h1>Contactos:</h1>
-    <!-- <h1>{{user.uid}}</h1>
-    <h1>{{user.email}}</h1> -->
-    <v-expansion-panels>
-      <v-expansion-panel>
-        <v-expansion-panel-header>
-          <template v-slot:default="{ open }">
-            <v-row no-gutters>
-              <v-col cols="12" class="text--secondary">
-                <v-fade-transition leave-absolute>
-                  <span v-if="open" key="0">
-                    Enter contact email
-                  </span>
-                  <span v-else key="1">
-                    Add
-                  </span>
-                </v-fade-transition>
-              </v-col>
-            </v-row>
-          </template>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <v-text-field
-            v-on:keyup="defineContactEmail($event.target.value)"
-            placeholder="email"
-          ></v-text-field>
-          <v-btn @click="addContact(newContactEmail)">Add</v-btn>
-          <v-alert
-            v-model="alert"
-            border="left"
-            dismissible
-            :color="addContactResponseMessage == 'Success' ? 'green lighten-2' : 'red lighten-2' "
-          > 
-            {{ addContactResponseMessage }}
-          </v-alert>
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-    <v-list three-line>
-      <template v-for="(item, index) in allContacts">
-        <v-list-item
-          :key="index"
-          v-on="item.connecteds ? { click: () => selectChat(item) } : {}"
-        >
-          <v-list-item-avatar>
-            <v-img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'"></v-img>
-          </v-list-item-avatar>
+    <v-col cols=4 class="col-contacts">
+      <v-row style="height: 68px;" class="bg-gray">
+        <v-col cols=12>
+          <v-expansion-panels>
+            <v-expansion-panel>
+              <v-expansion-panel-header>
+                <template v-slot:default="{ open }">
+                  <v-row no-gutters>
+                    <v-col cols="12" class="text--secondary">
+                      <v-fade-transition leave-absolute>
+                        <span v-if="open" key="0">
+                          Add contact
+                        </span>
+                        <span v-else key="1">
+                          Contacts
+                        </span>
+                      </v-fade-transition>
+                    </v-col>
+                  </v-row>
+                </template>
+              </v-expansion-panel-header>
+              <v-expansion-panel-content>
+                <v-text-field
+                  v-on:keyup="defineContactEmail($event.target.value)"
+                  placeholder="email"
+                ></v-text-field>
+                <v-btn @click="addContact(newContactEmail)">Add</v-btn>
+                <v-alert
+                  v-model="alert"
+                  border="left"
+                  dismissible
+                  :color="addContactResponseMessage == 'Success' ? 'green lighten-2' : 'red lighten-2' "
+                > 
+                  {{ addContactResponseMessage }}
+                </v-alert>
+              </v-expansion-panel-content>
+            </v-expansion-panel>
+          </v-expansion-panels>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols=12 style="padding: 0">
+          <v-list three-line>
+            <template v-for="(item, index) in allContacts">
+              <v-list-item
+                :key="index"
+                v-on="item.connecteds ? { click: () => selectChat(item) } : {}"
+              >
+                <v-list-item-avatar>
+                  <v-img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'"></v-img>
+                </v-list-item-avatar>
 
-          <v-list-item-content>
-            <v-list-item-title
-              :class="{'red lighten-5': !item.auth, 'green lighten-5' : item.requestedBy == mydata.uid, '': item.connecteds}"
-              v-html="item.extraData.firstName + ' ' +item.extraData.lastName"
-            >
-            </v-list-item-title>
-            
-            <v-list-item-subtitle v-if="item.requestedBy == mydata.uid && !item.connecteds"> Contact request pending </v-list-item-subtitle>
-            <div v-else-if="item.connecteds == 'rejected'">
-              <v-list-item-subtitle > Request rejected </v-list-item-subtitle>
-              <v-btn @click="addContact(item.auth.email, true)">resend</v-btn>
-            </div>
-            
+                <v-list-item-content>
+                  <v-list-item-title
+                    :class="{'red lighten-5': !item.auth, 'green lighten-5' : item.requestedBy == mydata.uid && !item.connecteds, '': item.connecteds}"
+                    v-html="item.extraData.firstName + ' ' +item.extraData.lastName"
+                  >
+                  </v-list-item-title>
+                  
+                  <v-list-item-subtitle v-if="item.requestedBy == mydata.uid && !item.connecteds"> Contact request pending </v-list-item-subtitle>
+                  <div v-else-if="item.connecteds == 'rejected'">
+                    <v-list-item-subtitle > Request rejected </v-list-item-subtitle>
+                    <v-btn @click="addContact(item.auth.email, true)">resend</v-btn>
+                  </div>
+                  
 
-            <v-list-item-subtitle v-if="item.requestedBy != mydata.uid && !item.connecteds"> New contact request </v-list-item-subtitle>
-            <v-list-item-subtitle v-if="item.connecteds === true"> Last message </v-list-item-subtitle>
+                  <v-list-item-subtitle v-if="item.requestedBy != mydata.uid && !item.connecteds"> New contact request </v-list-item-subtitle>
+                  <v-list-item-subtitle v-if="item.connecteds === true"> {{item.lastMessage}} </v-list-item-subtitle>
 
-            <v-btn v-if="!item.auth" @click="handleContactRequest(index, true)">accept</v-btn>
-            <v-btn v-if="!item.auth" @click="handleContactRequest(index, false)">reject</v-btn>
-          </v-list-item-content>
-        </v-list-item>
-      </template>
-    </v-list>
-  </div>
+                  <v-btn v-if="!item.auth" @click="handleContactRequest(index, true)">accept</v-btn>
+                  <v-btn v-if="!item.auth" @click="handleContactRequest(index, false)">reject</v-btn>
+                </v-list-item-content>
+              </v-list-item>
+            </template>
+          </v-list>
+        </v-col>
+      </v-row>
+    </v-col>
 </template>
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
 import * as firebase from "firebase";
-import axios from "axios";
 import "firebase/database";
 import { axiosRequest, emailRegex } from '@/helpers/index'
 
@@ -90,6 +94,7 @@ export default class Contacts extends Vue {
   addContactResponseMessage = "";
   alert = false;
   api: string = (this.$root as any).urlApi;
+  chatKey: string;
 
   @Prop()
   //elpepe!: String; this tells TS that the value will be assigned at runtime.
@@ -106,36 +111,36 @@ export default class Contacts extends Vue {
   get userContacts() {
     return this.$store.getters.user.contacts;
   }
-
+  
   selectChat(item: any) {
-    console.log(item);
+    this.$emit('chatSelected', item)
   }
 
-  async handleContactRequest(uid: string, accepted: boolean) {
+  async handleContactRequest(contactUid: string, accepted: boolean) {
     const myuid = this.mydata.uid;
     try {
-      const postReq = await axiosRequest('POST', this.api+'/get-user-uid', {uid: uid})
+      const postReq = await axiosRequest('POST', this.api+'/get-user-uid', {uid: contactUid})
       if(accepted) {
         firebase.database().ref("users/")
         .child(myuid)
-        .child('contacts/'+uid+'/auth').set(postReq.data);
+        .child('contacts/'+contactUid+'/auth').set(postReq.data);
 
         firebase.database().ref("users/")
         .child(myuid)
-        .child('contacts/'+uid+'/connecteds').set(true);
+        .child('contacts/'+contactUid+'/connecteds').set(true);
 
         firebase.database().ref("users/")
-          .child(uid)
+          .child(contactUid)
           .child('contacts/'+myuid+'/connecteds').set(true);
       } else {
-        delete this.allContacts[uid]; //borrar de la lista users para el UI
+        delete this.allContacts[contactUid]; //borrar de la lista users para el UI
         firebase.database().ref("users/")
-          .child(uid)
+          .child(contactUid)
           .child('contacts/'+myuid+'/connecteds').set('rejected');
         
         firebase.database().ref("users/")
           .child(myuid)
-          .child('contacts/'+uid).remove();
+          .child('contacts/'+contactUid).remove();
       }
     } catch (error) {
       throw new Error(error)
@@ -173,7 +178,7 @@ export default class Contacts extends Vue {
       .child('contacts/')
       .on("value", (snapshot) => {
         this.allContacts = snapshot.val();
-      });
+    });
   }
   async addContact(email: string, resend: boolean) {
     this.alert = false;
@@ -230,3 +235,20 @@ export default class Contacts extends Vue {
   }
 }
 </script>
+<style lang="scss">
+$chat-theme: #ececec;
+
+.col-contacts {
+  border-right: 1px solid #dadada;
+  padding-top: 0;
+}
+.bg-gray {
+  background-color: $chat-theme;
+}
+.v-list {
+  padding: 0 !important;
+}
+.theme--light.v-expansion-panels .v-expansion-panel {
+  background-color: $chat-theme !important;
+}
+</style>
