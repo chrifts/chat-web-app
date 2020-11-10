@@ -35,10 +35,16 @@ const init = () => {
       data: ()=>({
         urlApi: urlApi 
       }),
+      beforeCreate: ()=> {
+        store.commit("setMainLoading", true);
+        console.log(store.getters.mainLoading)
+      },
       render: h => h(App)
     }).$mount("#app");
   }
 };
+
+init();
 
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
@@ -51,13 +57,19 @@ firebase.auth().onAuthStateChanged(user => {
         lastName: snapshot.val().lastName,
       }
       store.commit("setUser", theUser);
+      store.commit("setMainLoading", false);
       router.push({ name: "Home" });
+      
     });
     
   } else {
-    store.commit("setUser", null);
-    router.push({ name: "Login" });
+    setTimeout(function(){ 
+      store.commit("setUser", null);
+      store.commit("setMainLoading", false);
+      router.push({ name: "Login" });
+      
+    }
+    , 1000);
   }
-
-  init();
 });
+

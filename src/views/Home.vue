@@ -1,7 +1,7 @@
 <template>
-  <div class="home">
+  <div class="home" id="main-view">
     <img alt="Vue logo" src="../assets/logo.png" />
-    <h1>Welcome {{ user.firstName ? user.firstName + ' ' + user.lastName : ''  }}</h1>
+    <h1 v-if="user">Welcome {{ user.firstName ? user.firstName + ' ' + user.lastName : ''  }}</h1>
   </div>
 </template>
 

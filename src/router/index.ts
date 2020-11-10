@@ -3,6 +3,7 @@ import VueRouter, { RouteConfig } from "vue-router";
 import Home from "../views/Home.vue";
 import Chat from "../views/Chat.vue";
 import Register from "../views/Register.vue";
+import Login from "../views/Login.vue";
 import Profile from "../views/Profile.vue";
 import store from "../store";
 
@@ -30,8 +31,7 @@ const routes: Array<RouteConfig> = [
     // route level code-splitting
     // this generates a separate chunk (about.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/Login.vue")
+    component: Login
   },
   {
     path: "/profile",
@@ -52,15 +52,18 @@ const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  if (store.getters.user == null) {
-    to.name == "Register" || to.name == "Login"
-      ? next()
-      : next({ name: "Login" });
-  } else {
-    to.name == "Register" || to.name == "Login"
-      ? next({ name: "Home" })
-      : next();
-  }
+  
+    if (store.getters.user == null) {
+      to.name == "Register" || to.name == "Login"
+        ? next()
+        : next({ name: "Login" });
+    } else {
+      to.name == "Register" || to.name == "Login"
+        ? next({ name: "Home" })
+        : next();
+    }
+  
+  
 });
 
 export default router;

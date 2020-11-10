@@ -10,7 +10,9 @@ export default new Vuex.Store({
     user: null,
     userContacts: [] as string[],
     status: null,
-    firebaseError: null
+    firebaseError: null,
+    selectedChat: null,
+    mainLoading: false,
   },
   mutations: {
     setUser(state, payload) {
@@ -25,6 +27,12 @@ export default new Vuex.Store({
     setUserContacts(state, payload) {
       state.userContacts.push(payload);
     },
+    setSelectedChat(state, payload) {
+      state.selectedChat = payload;
+    },
+    setMainLoading(state, payload) {
+      state.mainLoading = payload;
+    }
   },
   actions: {
     REGISTER_USER({ commit }, payload) {
@@ -77,10 +85,15 @@ export default new Vuex.Store({
     }
   },
   getters: {
+    selectedChat(state) {
+      return state.selectedChat;
+    },
+    mainLoading(state) {
+      return state.mainLoading
+    },
     status(state) {
       return state.status;
     },
-
     user(state) {
       return state.user;
     },

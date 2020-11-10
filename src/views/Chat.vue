@@ -1,8 +1,8 @@
 <template>
   <v-container id="chat">
-    <div class="main-content">
+    <div class="main-content" v-if="!$vuetify.breakpoint.mobile">
       
-      <Contacts @chatSelected="loadChat" />
+      <Contacts @chatSelected="focusChat" />
       
       <v-col cols="8" style="padding: 0 !important">
         <div class="chat-main-view">
@@ -10,40 +10,40 @@
             <span style="position: relative; top: 300px;">Choose one chat</span>
           </div>
           <h1 class="header-block" v-if="chatSelected">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}</h1>
-          <div class="chat-list-block px-3" >
+          <ChatList v-if="chatSelected" 
+            :chatWindowProp="chatWindow"
+          />
+          <ChatFoot v-if="chatSelected"
+            :chatWindowProp="chatWindow" 
+          />
+        </div>
+      </v-col>
+    </div>
+    <div class="main-content-mobile" v-else>
+      <Contacts @chatSelected="focusChat" v-if="!chatSelected" />
+      <v-col cols="12" v-if="chatSelected" style="padding: 0 !important">
+        <div class="chat-main-view">
+          
+          <div class="header-block" v-if="chatSelected">
+            <v-row>
+              <v-col cols=2>
+                <v-btn outlined elevation="1" icon @click="unsetSelectedChat()"> <v-icon>
+                  mdi-chevron-left</v-icon> 
+                </v-btn>
+              </v-col>
+              <v-col cols=10>
+                <h3 class="text-left mt-1">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}</h3>
+              </v-col>
+            </v-row>
             
-            <v-progress-circular
-              v-if="chatSelected && !messages"
-              indeterminate
-              color="primary"
-            ></v-progress-circular>
-            <v-col cols=12 :style="messages ? 'visibility: visible' : 'visibility: hidden'">
-              <v-list :class="{'d-block' : chatWindow}" class="d-none" >
-                <template v-for="(item, index) in messages">
-                  <v-list-item 
-                    two-line 
-                    :key="index"
-                  >
-                    <v-list-item-content>
-                      <v-list-item-title>{{item.message}}</v-list-item-title>
-                      <v-list-item-subtitle>{{item.timestamp}}</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </template>
-              </v-list>
-            </v-col>
+            
           </div>
-          <div class="footer-block" :style="chatSelected ? 'visibility: visible' : 'visibility: hidden'">
-            <div class="f1">
-              <div class="textarea-div mb-2">
-                <div tabindex="-1" class="textarea">
-                  <!-- <div class="label" style="visibility: visible">Escribe un mensaje aquí</div> -->
-                  <div id="texttype" class="writehere copyable-text selectable-text" contenteditable="true" data-tab="6" dir="ltr" spellcheck="true"></div>
-                </div>
-              </div>
-              <v-btn @click="sendMessage()" class="mb-4 mr-2" style="height: 25px">send</v-btn>
-            </div>
-          </div>
+          <ChatList v-if="chatSelected" 
+            :chatWindowProp="chatWindow"
+          />
+          <ChatFoot v-if="chatSelected"
+            :chatWindowProp="chatWindow" 
+          />
         </div>
       </v-col>
     </div>
@@ -51,115 +51,91 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import * as firebase from "firebase";
 import "firebase/database";
 import Contacts from "./chatContent/Contacts.vue";
-
-interface NewMessage {
-    timestamp: number,
-    message: string,
-    from: string,
-    to: string
-}
+import ChatList from "./ChatList.vue";
+import ChatFoot from "./ChatFoot.vue";
+import VueScrollTo from 'vue-scrollto';
+import { chatKey } from '../helpers';
+import store from '@/store/index'
+Vue.use(VueScrollTo)
 
 @Component({
   components: {
-    Contacts
+    Contacts,
+    ChatList,
+    ChatFoot
   }
 })
 export default class Chat extends Vue {
   chatSelected: any | boolean = false;
   chatWindow = false;
-  messages: any | boolean = false;
-  newMessage: NewMessage;
+  
   messageText: string;
   loading = false;
+  scrollOpts = {
+    container: '.chat-list-block',
+    element: '.bubble:last-child',
+    easing: 'ease-in',
+    lazy: false,
+    offset: -60,
+    force: true,
+    cancelable: true,
+    x: false,
+    y: true
+  }
 
   get mydata() {
     return this.$store.getters.user;
   }
 
-  setTextAreaEvent() {
-    console.log('seted');
-    document.getElementById('texttype')!.addEventListener('keyup', (event) => {
-      const input = event.target as HTMLElement;
-      this.messageText = input.innerText;
-    }, false);
-  }
-
-  loadChat(contact: any) {
-    this.chatSelected = contact;
+  focusChat(contact: any) {
     this.chatWindow = true;
-    const myuid = this.mydata.uid
-    if(myuid < contact.auth.uid){
-      this.chatSelected.chatKey = myuid+contact.auth.uid;  
-    }
-    else{
-      this.chatSelected.chatKey = contact.auth.uid+myuid;
-    }
-    try {
-      const ref = firebase.database().ref("chats/"+this.chatSelected.chatKey);
-      ref.once("value").then((snapshot) => {
-        if(!snapshot.exists()) {
-          this.sendMessage(true)
-          
-          firebase.database().ref("chats/"+this.chatSelected.chatKey).on("value", (snapshot) => {
-            this.messages = snapshot.val();
-            
-          })
-        } else {
-          //load chatKey data
-          
-          firebase.database().ref("chats/"+this.chatSelected.chatKey).on("value", (snapshot) => {
-            this.messages = snapshot.val();
-            
-          })
-        }
-      })
-    } catch (error) {
-      throw new Error(error)
-    }
+    this.chatSelected = contact;
+    this.chatSelected.chatKey = chatKey(this.mydata.uid, contact.auth.uid);
+    store.commit('setSelectedChat', this.chatSelected);
   }
 
-  mounted() {
-    this.setTextAreaEvent();
+  @Watch('$store.state.selectedChat')
+  onChangeChat(val: any) {
+    this.chatSelected = val;
   }
 
-  sendMessage(isFirst: boolean) {
-    const messageTime = Date.now();
-    if(isFirst) {
-      const newChat = firebase.database().ref("chats/"+this.chatSelected.chatKey).push()
-      this.newMessage = {
-        timestamp: messageTime,
-        message: "Here start the chat",
-        from: 'server-first-message',
-        to: 'all'
-      }
-      newChat.set(this.newMessage);
-      return;
-    }
-    const newMessage = firebase.database().ref("chats/"+this.chatSelected.chatKey).push()
-    this.newMessage = {
-      timestamp: messageTime,
-      message: this.messageText,
-      from: this.mydata.uid,
-      to: this.chatSelected.auth.uid
-    }
-    newMessage.set(this.newMessage);
-    firebase.database().ref("users/"+this.chatSelected.auth.uid+'/contacts/'+this.mydata.uid+'/lastMessage').set(this.messageText);
-    return;
+  scrollBottom() {
+    this.$scrollTo('.bubble:last-child', 300, this.scrollOpts)
   }
 
-  get user() {
-    return this.$store.getters.user;
+  unsetSelectedChat() {
+    this.chatWindow = false;
+    this.chatSelected = false;
+    store.commit('setSelectedChat', false);
   }
+
 }
-
-
 </script>
+
 <style lang="scss">
-$chat-theme: #ececec;
+
+.bubble-left {
+  background-color: rgb(128, 65, 128);
+  text-align: left;
+  margin: 10px 0px;
+}
+.bubble {
+  margin: 10px 0px;
+  min-width: 70px;
+  max-width: 60%;
+  width: max-content;
+  border-radius: 10px
+}
+.bubble-right {
+  margin-left: 100%;
+  text-align: left;
+  background-color: rgb(117, 117, 251);
+  float: right;
+}
 
 .textarea-div {
   padding: 8px 10px;
@@ -233,6 +209,16 @@ $chat-theme: #ececec;
   overflow: hidden;
   box-shadow: 0 4px 9px 0 rgba(0, 0, 0, 0.5), 0 7px 4px 0 rgba(70, 70, 70, 0.2);
 }
+.main-content-mobile {
+  position: relative;
+  top: 0;
+  display: flex;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 100%;
+  overflow: hidden;
+}
 .chat-main-view {
   display: flex;
   flex-direction: column;
@@ -247,10 +233,20 @@ $chat-theme: #ececec;
   order: 1;
 }
 .chat-list-block {
+  overflow-y: scroll;
+  max-height: 100vh;
   position: relative;
   display: block;
   order: 2;
   flex: 1 1 0;
+  .theme--light.v-list-item:not(.v-list-item--active):not(.v-list-item--disabled) {
+    // text color
+    color: #ffffff !important;
+  }
+  .theme--light.v-list-item .v-list-item__subtitle, .theme--light.v-list-item .v-list-item__action-text {
+    // color of timestamp (subtitle)
+    color: rgb(224, 224, 224);
+  }
 }
 .footer-block{
   background-color: $chat-theme;
@@ -272,4 +268,5 @@ $chat-theme: #ececec;
     min-height: 62px;
   }
 }
+
 </style>

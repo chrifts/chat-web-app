@@ -1,15 +1,16 @@
 <template>
   <div id="app">
-    <v-app>
-      <NavBar></NavBar>
+    <v-app :class="{'mobile-container' : $vuetify.breakpoint.mobile}">
+      <NavBar v-if="!$vuetify.breakpoint.mobile"  style="z-index: 1;" />
       <router-view />
+      <NavBar v-if="$vuetify.breakpoint.mobile" style="z-index: 1;" />
     </v-app>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
-import { Component } from "vue-property-decorator";
+import { Component, Watch } from "vue-property-decorator";
 
 import NavBar from "@/components/NavBar.vue";
 
@@ -18,9 +19,30 @@ import NavBar from "@/components/NavBar.vue";
     NavBar
   }
 })
-export default class App extends Vue {}
+export default class App extends Vue {
+
+  appLoading = false;
+
+  @Watch('$store.state.mainLoading')
+  onAppLoaded(val: any) {
+    this.appLoading = val; 
+  }
+}
 </script>
 <style lang="scss">
+
+.mobile-container {
+  .v-application--wrap {
+    #main-view {
+      height: 100%;
+    }
+    #chat {
+      padding: 0 !important;
+    }
+    padding-bottom: 75px !important;
+    z-index: 0;
+  }
+}
 #app {
   position: absolute;
   top: 0;

@@ -36,7 +36,17 @@ const emailRegex = (email: string) => {
     }
     return false;
 }
+
+const chatKey = (myuid: string, contactUid: string) => {
+    if(myuid < contactUid){
+        return myuid+contactUid;  
+      }
+    else{
+        return contactUid+myuid;
+    }
+}
 export {
     axiosRequest,
-    emailRegex
+    emailRegex,
+    chatKey
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="profile">
+  <div class="profile" id="main-view">
     <h1>Welcome {{ user.firstName ? user.firstName + ' ' + user.lastName : ''  }}</h1>
   </div>
 </template>

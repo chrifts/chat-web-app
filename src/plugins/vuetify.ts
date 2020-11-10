@@ -15,4 +15,7 @@ export default new Vuetify({
             },
         },
     },
+    breakpoint: {
+        mobileBreakpoint: 599
+    }
 });

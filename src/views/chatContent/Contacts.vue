@@ -1,5 +1,5 @@
 <template>
-    <v-col cols=4 class="col-contacts">
+    <v-col :cols="$vuetify.breakpoint.mobile ? 12 : 4" class="col-contacts">
       <v-row style="height: 68px;" class="bg-gray">
         <v-col cols=12>
           <v-expansion-panels>
@@ -25,7 +25,12 @@
                   v-on:keyup="defineContactEmail($event.target.value)"
                   placeholder="email"
                 ></v-text-field>
-                <v-btn @click="addContact(newContactEmail)">Add</v-btn>
+                <v-btn v-if="!addingContact" @click="addContact(newContactEmail)">Add</v-btn>
+                <v-progress-circular
+                  v-if="addingContact"
+                  indeterminate
+                  color="primary"
+                ></v-progress-circular>
                 <v-alert
                   v-model="alert"
                   border="left"
@@ -95,11 +100,7 @@ export default class Contacts extends Vue {
   alert = false;
   api: string = (this.$root as any).urlApi;
   chatKey: string;
-
-  @Prop()
-  //elpepe!: String; this tells TS that the value will be assigned at runtime.
-  //elpepe?: String; Optional prop
-  testPropr: string | undefined;
+  addingContact = false;
 
   defineContactEmail(val: string) {
     this.newContactEmail = val;
@@ -196,6 +197,7 @@ export default class Contacts extends Vue {
 
     if(emailRegex(this.newContactEmail)){
       try {
+        this.addingContact = true;
         const response = await axiosRequest('GET', this.api+'/get-user?email='+this.newContactEmail)
         this.newContact = response.data;
         const ref = firebase.database().ref('users/' + this.mydata.uid + '/contacts/' + this.newContact.auth.uid);
@@ -209,20 +211,24 @@ export default class Contacts extends Vue {
             firebase.database().ref('users/' + this.mydata.uid + '/contacts/' + this.newContact.auth.uid).set(this.newContact);
             firebase.database().ref('users/' + this.newContact.auth.uid + '/contacts/' + this.mydata.uid + '/requestedBy').set(this.mydata.uid);
             firebase.database().ref('users/' + this.newContact.auth.uid + '/contacts/' + this.mydata.uid + '/connecteds').set(false);
+            this.addingContact = false;
             this.alert = true;
             return;
           } else {
             this.addContactResponseMessage = "User exists";
+            this.addingContact = false;
             this.alert = true;
             return;
           }
         })
         .catch(error => {
+          this.addingContact = false;
           this.alert = true;
           this.addContactResponseMessage = error;
           throw new Error(error);
         });
       } catch (error) {
+        this.addingContact = false;
         this.addContactResponseMessage = error;
         this.alert = true;
         throw new Error(error);
@@ -236,11 +242,11 @@ export default class Contacts extends Vue {
 }
 </script>
 <style lang="scss">
-$chat-theme: #ececec;
+
 
 .col-contacts {
-  border-right: 1px solid #dadada;
-  padding-top: 0;
+  border-right: 1px solid #b4b4b4;
+  padding-top: 0 !important;
 }
 .bg-gray {
   background-color: $chat-theme;
