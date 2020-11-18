@@ -1,8 +1,9 @@
 <template>
   <div>
+    <!-- DESKTOP -->
     <v-toolbar color="primary" v-if="!$vuetify.breakpoint.mobile">
       <v-toolbar-title>
-        <v-btn text :to="'/'">
+        <v-btn color="white" text :to="'/'">
           APP NAME
         </v-btn>
       </v-toolbar-title>
@@ -11,27 +12,28 @@
       
         <v-toolbar-items v-if="!loggedIn && !loading">
           <v-btn
+            color="white"
             text
             v-for="item in itemsNoAuth"
             :key="item.title"
             :to="item.link"
           >
             {{ item.title }}
-            <v-icon right>{{ item.icon }}</v-icon>
+            <v-icon right color="white">{{ item.icon }}</v-icon>
           </v-btn>
           <v-spacer></v-spacer>
         </v-toolbar-items>
 
         <v-toolbar-items v-if="loggedIn && !loading">
-          <v-btn text v-for="item in itemsAuth" :key="item.title" :to="item.link">
+          <v-btn color="white" text v-for="item in itemsAuth" :key="item.title" :to="item.link">
             {{ item.title }}
-            <v-icon right>{{ item.icon }}</v-icon>
+            <v-icon right color="white">{{ item.icon }}</v-icon>
           </v-btn>
           <v-spacer></v-spacer>
 
-          <v-btn text @click="logout">
+          <v-btn text color="white" @click="logout">
             Logout
-            <v-icon right>exit_to_app</v-icon>
+            <v-icon color="white" right>exit_to_app</v-icon>
           </v-btn>
         </v-toolbar-items>
     
@@ -46,6 +48,7 @@
       ></v-progress-linear>
       Loading...
     </div>
+    <!-- MOBILE -->
     <v-bottom-navigation v-if="$vuetify.breakpoint.mobile && !chatSelected" class="bottom-nav content-between" :class="{'bottom-nav-no-chat' : $router.currentRoute.name != 'Chat'}">
       <v-btn text v-for="item in itemsAuth" :key="item.title" :to="item.link">
         <span>{{ item.title }}</span>
@@ -60,12 +63,13 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import store from '@/store/index'
 import { Watch, Prop } from 'vue-property-decorator';
+import { axiosRequest } from '../helpers';
 
 @Component({})
 export default class NavBar extends Vue {
 
   chatSelected = this.selectedChat;
-  loading = true;
+  loading = false;
   loggedIn = this.userLoggedIn;
 
   get itemsNoAuth() {
@@ -113,15 +117,17 @@ export default class NavBar extends Vue {
     return this.$store.getters.user;
   }
 
-  
-
   get selectedChat() {
     return this.$store.getters.selectedChat;
   }
 
   public logout() {
+    axiosRequest('POST', (this.$root as any).urlApi + '/auth/logout', {refreshToken: this.$cookies.get('refreshToken')} )
     store.commit("setMainLoading", true);
+    this.$socket.client.disconnect();
     this.$store.dispatch("LOGOUT_USER");
+    this.$cookies.remove('jwt');
+    this.$cookies.remove('refreshToken');
   }
   @Watch('$store.state.mainLoading')
   onMainLoading(val: any) {

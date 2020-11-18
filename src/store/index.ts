@@ -1,6 +1,5 @@
 import Vue from "vue";
 import Vuex from "vuex";
-import * as firebase from "firebase";
 import router from "../router";
 
 Vue.use(Vuex);
@@ -8,9 +7,7 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     user: null,
-    userContacts: [] as string[],
     status: null,
-    firebaseError: null,
     selectedChat: null,
     mainLoading: false,
   },
@@ -21,12 +18,6 @@ export default new Vuex.Store({
     setStatus(state, payload) {
       state.status = payload;
     },
-    setFirebaseError(state, payload) {
-      state.firebaseError = payload;
-    },
-    setUserContacts(state, payload) {
-      state.userContacts.push(payload);
-    },
     setSelectedChat(state, payload) {
       state.selectedChat = payload;
     },
@@ -35,53 +26,21 @@ export default new Vuex.Store({
     }
   },
   actions: {
+    LOGIN_USER({commit}, payload) {
+      //
+    },
     REGISTER_USER({ commit }, payload) {
       commit("setStatus", "busy");
-      firebase
-        .auth()
-        .createUserWithEmailAndPassword(payload.email, payload.password)
-        .then(response => {
-          commit("setUser", response.user);
-          commit("setStatus", "success");
-          commit("setFirebaseError", null);
-          router.push("/");
-        })
-        .catch(error => {
-          commit("setStatus", "failure");
-          commit("setFirebaseError", error.message);
-        });
-    },
-    LOGIN_USER({ commit }, payload) {
-      commit("setStatus", "busy");
-      firebase
-        .auth()
-        .signInWithEmailAndPassword(payload.email, payload.password)
-        .then(response => {
-          commit("setUser", response.user);
-          commit("setStatus", "success");
-          commit("setFirebaseError", null);
-          router.push("/");
-        })
-        .catch(error => {
-          commit("setStatus", "failure");
-          commit("setFirebaseError", error.message);
-        });
+      commit("setUser", payload);
+      commit("setStatus", "success");
+      router.push("/");
+        
     },
     LOGOUT_USER({ commit }) {
       commit("setStatus", "busy");
-      firebase
-        .auth()
-        .signOut()
-        .then(response => {
-          commit("setUser", null);
-          commit("setStatus", "success");
-          commit("setFirebaseError", null);
-          router.push("/login");
-        })
-        .catch(error => {
-          commit("setStatus", "failure");
-          commit("setFirebaseError", error.message);
-        });
+      commit("setUser", null);
+      commit("setStatus", "success");
+      router.push("/login");
     }
   },
   getters: {
@@ -96,12 +55,6 @@ export default new Vuex.Store({
     },
     user(state) {
       return state.user;
-    },
-    userContacts(state) {
-      return state.userContacts;
-    },
-    firebaseError(state) {
-      return state.firebaseError;
     }
   },
   modules: {}

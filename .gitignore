@@ -1,13 +1,16 @@
 .DS_Store
 node_modules
 /dist
-
+backend/dist
 
 # local env files
 .env
 .env.development
 .env.local
 .env.*.local
+
+#pem
+backend/private.pem
 
 # Log files
 npm-debug.log*

@@ -45,8 +45,7 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { Watch } from 'vue-property-decorator';
-
-import * as firebase from "firebase";
+import { axiosRequest } from '@/helpers/index'
 import router from "../router";
 import store from '@/store/index'
 
@@ -67,23 +66,37 @@ export default class Login extends Vue {
       this.loginUser();
     }
   }
-  loginUser() {
-    store.commit("setMainLoading", true);
 
-    firebase
-      .auth()
-      .signInWithEmailAndPassword(this.email, this.password)
-      .then(response => {
-        console.log(response);
+  async loginUser() {
+    store.commit("setMainLoading", true);
+    try {
+      const user = await axiosRequest('POST', (this.$root as any).urlApi + '/auth/login', {
+        email: this.email,
+        password: this.password
       })
-      .catch(error => {
-        alert("failure");
-        console.log(error);
+      this.$cookies.set('jwt', user.data.accessToken, {
+        secure: false 
       });
+      this.$cookies.set('refreshToken', user.data.refreshToken, {
+        secure: false 
+      });
+      
+      
+      const theUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {}, {headers: {"x-auth-token": user.data.accessToken}})
+      
+      if(theUser.data.email) {
+          const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: theUser.data.email}, {headers: {"x-auth-token": user.data.accessToken}})
+          this.$store.commit('setUser', fullUser.data);
+          return;
+      } else {
+        throw new Error('error in login.vue')
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
   }
   @Watch('$store.state.mainLoading')
   onMainLoading(val: any) {
-    
     this.loading = val;
   }
 }

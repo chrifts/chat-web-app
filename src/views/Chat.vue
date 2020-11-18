@@ -1,5 +1,6 @@
 <template>
   <v-container id="chat">
+    <!-- DESKTOP -->
     <div class="main-content" v-if="!$vuetify.breakpoint.mobile">
       
       <Contacts @chatSelected="focusChat" />
@@ -7,9 +8,11 @@
       <v-col cols="8" style="padding: 0 !important">
         <div class="chat-main-view">
           <div v-if="!chatSelected">
-            <span style="position: relative; top: 300px;">Choose one chat</span>
+            <span style="position: relative; top: 300px;">Choose a chat</span>
           </div>
-          <h1 class="header-block" v-if="chatSelected">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}</h1>
+          <h1 class="header-block" 
+            v-if="chatSelected">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}
+          </h1>
           <ChatList v-if="chatSelected" 
             :chatWindowProp="chatWindow"
           />
@@ -19,6 +22,7 @@
         </div>
       </v-col>
     </div>
+    <!-- MOBILE -->
     <div class="main-content-mobile" v-else>
       <Contacts @chatSelected="focusChat" v-if="!chatSelected" />
       <v-col cols="12" v-if="chatSelected" style="padding: 0 !important">
@@ -27,8 +31,10 @@
           <div class="header-block" v-if="chatSelected">
             <v-row>
               <v-col cols=2>
-                <v-btn outlined elevation="1" icon @click="unsetSelectedChat()"> <v-icon>
-                  mdi-chevron-left</v-icon> 
+                <v-btn outlined elevation="1" color="white" icon @click="unsetSelectedChat()"> 
+                  <v-icon color="white">
+                    mdi-chevron-left
+                  </v-icon> 
                 </v-btn>
               </v-col>
               <v-col cols=10>
@@ -52,8 +58,7 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
-import * as firebase from "firebase";
-import "firebase/database";
+
 import Contacts from "./chatContent/Contacts.vue";
 import ChatList from "./ChatList.vue";
 import ChatFoot from "./ChatFoot.vue";
@@ -80,7 +85,7 @@ export default class Chat extends Vue {
     element: '.bubble:last-child',
     easing: 'ease-in',
     lazy: false,
-    offset: -60,
+    offset: 0,
     force: true,
     cancelable: true,
     x: false,
@@ -94,7 +99,7 @@ export default class Chat extends Vue {
   focusChat(contact: any) {
     this.chatWindow = true;
     this.chatSelected = contact;
-    this.chatSelected.chatKey = chatKey(this.mydata.uid, contact.auth.uid);
+    this.chatSelected.chatKey = chatKey(this.mydata._id, contact.auth._id);
     store.commit('setSelectedChat', this.chatSelected);
   }
 
@@ -118,25 +123,6 @@ export default class Chat extends Vue {
 
 <style lang="scss">
 
-.bubble-left {
-  background-color: rgb(128, 65, 128);
-  text-align: left;
-  margin: 10px 0px;
-}
-.bubble {
-  margin: 10px 0px;
-  min-width: 70px;
-  max-width: 60%;
-  width: max-content;
-  border-radius: 10px
-}
-.bubble-right {
-  margin-left: 100%;
-  text-align: left;
-  background-color: rgb(117, 117, 251);
-  float: right;
-}
-
 .textarea-div {
   padding: 8px 10px;
   flex: 1 1 auto;
@@ -157,7 +143,7 @@ export default class Chat extends Vue {
     cursor: text;
     .label {
       position: absolute;
-      top: 6px;
+      top: 2px;
       z-index: 100;
       z-index: 2;
       color: var(--input-placeholder);
@@ -218,6 +204,10 @@ export default class Chat extends Vue {
   margin: 0 auto;
   height: 100%;
   overflow: hidden;
+  .header-block {
+    background-color: $main_1;
+    color: white;
+  }
 }
 .chat-main-view {
   display: flex;
@@ -226,47 +216,25 @@ export default class Chat extends Vue {
   transition: background-color .3s;
 }
 .header-block {
-  background-color: $chat-theme;
+  box-shadow: 0pt 0pt 9pt 0pt #b8b8b8;
+  z-index: 1;
+  background-color: #fff;
+  height: 72px;
+  color: rgb(59, 59, 59);
   padding: 10px;
   position: relative;
   display: flex;
   order: 1;
 }
 .chat-list-block {
+  background: radial-gradient(white, rgb(230, 230, 230));
   overflow-y: scroll;
-  max-height: 100vh;
   position: relative;
   display: block;
   order: 2;
   flex: 1 1 0;
-  .theme--light.v-list-item:not(.v-list-item--active):not(.v-list-item--disabled) {
-    // text color
-    color: #ffffff !important;
-  }
-  .theme--light.v-list-item .v-list-item__subtitle, .theme--light.v-list-item .v-list-item__action-text {
-    // color of timestamp (subtitle)
-    color: rgb(224, 224, 224);
-  }
+
 }
-.footer-block{
-  background-color: $chat-theme;
-  position: relative;
-  z-index: 1;
-  flex: none;
-  order: 3;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 62px;
-  .f1 {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    box-sizing: border-box;
-    max-width: 100%;
-    min-height: 62px;
-  }
-}
+
 
 </style>

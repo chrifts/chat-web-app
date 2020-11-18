@@ -10,7 +10,8 @@ admin.initializeApp({
     databaseURL: "https://chat-1d5a3.firebaseio.com"
 });
 
-var allowedOrigins = ['http://localhost:8080', 'https://chat-1d5a3.web.app/'];
+// var allowedOrigins = ['http://localhost:8080', 'https://chat-1d5a3.web.app/'];
+var allowedOrigins = ['*'];
 
 const app: express.Application = express();
 

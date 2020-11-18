@@ -72,8 +72,9 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { Watch } from 'vue-property-decorator';
-import * as firebase from "firebase";
 import store from '@/store/index'
+import { axiosRequest } from '@/helpers/index'
+import router from '../router';
 
 @Component({})
 export default class Register extends Vue {
@@ -108,21 +109,20 @@ export default class Register extends Vue {
   }
   
 
-  createUser() {
-    store.commit("setMainLoading", true);
-    firebase
-      .auth()
-      .createUserWithEmailAndPassword(this.email, this.password)
-      .then(response => {
-        firebase.database().ref('users/' + response.user!.uid).set({
-          firstName: this.firstName,
-          lastName: this.lastName
-        })
-      })
-      .catch(error => {
-        alert("failure");
-        console.log(error);
-      });
+  async createUser() {
+    // store.commit("setMainLoading", true);
+    const res = await axiosRequest('POST', (this.$root as any).urlApi + '/auth/signup', {
+      email: this.email,
+      password: this.password,
+      profile: {
+        name: this.firstName,
+        lastName: this.lastName,
+      }
+    })
+    console.log(res);
+    if(res.status == 201) {
+     router.push('/')
+    }
   }
   @Watch('$store.state.mainLoading')
   onMainLoading(val: any) {

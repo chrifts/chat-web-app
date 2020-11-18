@@ -1,18 +1,11 @@
-import * as firebase from "firebase";
 import axios from "axios";
-import "firebase/database";
 
-async function axiosRequest(type: string, url: string, postData?: {}) {
-    const tokenId = await firebase.auth().currentUser!.getIdToken(/* forceRefresh */ true);
-    const axiosHeader = {
-        headers: {
-          authorization: 'Bearer '+tokenId
-        }
-      }
+async function axiosRequest(type: string, url: string, postData?: {}, headers?: {}) {
+    
     let data: any;
     if(type == 'GET') {
         try {
-            const response = await axios.get(url, axiosHeader)
+            const response = await axios.get(url, headers)
             data = response;
         } catch (error) {
             throw new Error(error.response.data.message);
@@ -20,10 +13,10 @@ async function axiosRequest(type: string, url: string, postData?: {}) {
     }
     if(type == 'POST') {
         try {
-            const response = await axios.post(url, postData, axiosHeader)
+            const response = await axios.post(url, postData, headers)
             data = response;
         } catch (error) {
-            throw new Error(error.response.data.message);
+            data = error.response;
         }
         
     }
