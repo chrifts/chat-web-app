@@ -65,10 +65,7 @@
 <script lang="ts">
 import { Component, Vue, Watch, Prop } from "vue-property-decorator";
 import store from '@/store/index';
-import * as firebase from "firebase";
-import "firebase/database";
-import { chatKey } from '../helpers';
-import ChatList from '@/views/ChatList.vue'
+import { axiosRequest } from '../helpers';
 
 interface NewMessage {
     timestamp: number,
@@ -85,6 +82,7 @@ export default class ChatFoot extends Vue {
     messageText = '';
     newMessage: NewMessage;
     enterToSend = false;
+    api = (this.$root as any).urlApi;
 
     @Prop() chatWindowProp: any;
 
@@ -105,6 +103,7 @@ export default class ChatFoot extends Vue {
 
     @Watch("$store.state.selectedChat")
     onChangedChat(val: any) {
+        console.log(val)
         this.chatSelected = val;
     }
     
@@ -126,16 +125,15 @@ export default class ChatFoot extends Vue {
         const theTextArea = this.$refs._textarea as HTMLElement;
         theTextArea.focus();
         const messageTime = Date.now();
-        const newMessage = firebase.database().ref("chats/"+this.chatSelected.chatKey).push();
+        
         this.newMessage = {
             timestamp: messageTime,
             message: this.messageText,
             from: this.mydata._id,
-            to: this.chatSelected.auth._id
+            to: this.chatSelected._id
         }
-        newMessage.set(this.newMessage);
-        firebase.database().ref("users/"+this.chatSelected.auth._id+'/contacts/'+this.mydata._id+'/lastMessage').set(this.messageText);
-        firebase.database().ref("users/"+this.mydata._id+'/contacts/'+this.chatSelected.auth._id+'/lastMessage').set(this.messageText);
+        //POST MESSAGE
+        axiosRequest('POST', this.api + '/chat/post-message', {chatId: this.chatSelected.chatId, message: this.newMessage}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
         // eslint-disable-next-line
         theTextArea.innerText = '';
         return;

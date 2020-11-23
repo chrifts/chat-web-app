@@ -3,7 +3,14 @@ import mongoose = require("mongoose");
 //define schema
 const chatRoomSchema = new mongoose.Schema({
     members: Array, //user _id
-    messages:[{from: Number, to: Number, text: String, timestamp: {type: Date, default: Date.now()}}]
+    messages:[
+        {
+            from: String, 
+            to: String, 
+            message: String, 
+            timestamp: Number
+        }
+    ]
 });
 
 //define schema level methods to create access token and refresh token:

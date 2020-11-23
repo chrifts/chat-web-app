@@ -8,24 +8,10 @@ import store from "./store";
 import vuetify from "./plugins/vuetify";
 import dotenv from 'dotenv';
 import { axiosRequest } from './helpers/index'
-import VueCookies from "vue-cookies-ts"
-Vue.use(VueCookies)
+import VueCookies, { CookiesOption } from "vue-cookies-ts"
+Vue.use(VueCookies);
 
 dotenv.config();
-
-//GET CONFIG VALUE FROM ENV FILE
-// const firebaseConfig = {
-//   apiKey: process.env.VUE_APP_FIREBASE_CONFIG_apiKey,
-//   authDomain: process.env.VUE_APP_FIREBASE_CONFIG_authDomain,
-//   databaseURL: process.env.VUE_APP_FIREBASE_CONFIG_databaseURL,
-//   projectId: process.env.VUE_APP_FIREBASE_CONFIG_projectId,
-//   storageBucket: process.env.VUE_APP_FIREBASE_CONFIG_storageBucket,
-//   messagingSenderId: process.env.VUE_APP_FIREBASE_CONFIG_messagingSenderId,
-//   appId: process.env.VUE_APP_FIREBASE_CONFIG_appId,
-//   measurementId: process.env.VUE_APP_FIREBASE_CONFIG_measurementId
-// };
-// Initialize Firebase
-// firebase.initializeApp(firebaseConfig);
 
 let app: any;
 const urlApi: string = process.env.NODE_ENV == 'development' ? process.env.VUE_APP_API! : process.env.VUE_APP_API_PROD!;
@@ -43,20 +29,26 @@ const init = () => {
         user: {},
       }),
       beforeCreate: async function () {
+        (option: CookiesOption) => void 
+        
+        this.$cookies.config(
+          {
+            expires: '30d',
+            path: '/',
+          }
+        );
         store.commit("setMainLoading", true);
         const sessionToken = this.$cookies.get('jwt');
         const refreshToken = this.$cookies.get('refreshToken')
         if(sessionToken) {
           const user = await axiosRequest('POST', urlApi + '/get-user', {}, {headers: {"x-auth-token": sessionToken}})
-          console.log(user);
           if(user.data.email) {
             store.commit("setUser", user.data);
             store.commit("setMainLoading", false);
             return;
           }
-          if(user.data.message == 'Session timed out,please login again') {
+          if(user.data.message == 'Session timed out,please login again') { 
             const _refreshToken = await axiosRequest('POST', urlApi + '/auth/refresh_token', {refreshToken: refreshToken})
-            console.log(_refreshToken);
             if (_refreshToken.data.message == 'jwt expired' || _refreshToken.data.error == 'Token expired!') {
               axiosRequest('POST', (this.$root as any).urlApi + '/auth/logout', {refreshToken: refreshToken} )
               this.$store.dispatch("LOGOUT_USER");
@@ -82,7 +74,7 @@ const init = () => {
       watch: {
         '$store.state.user': function(user) {
           if(user) {
-            console.log(user);
+            
             store.commit("setUser", user);
             store.commit("setMainLoading", false);
             router.push({ name: "Home" });

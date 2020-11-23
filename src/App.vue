@@ -1,7 +1,10 @@
 <template>
   <div id="app">
     <v-app :class="{'mobile-container' : $vuetify.breakpoint.mobile}">
-      <NavBar v-if="!$vuetify.breakpoint.mobile"  style="z-index: 1;" />
+      <NavBar 
+        v-if="!$vuetify.breakpoint.mobile"  
+        style="z-index: 1;"
+      />
       <router-view />
       <NavBar v-if="$vuetify.breakpoint.mobile" style="z-index: 1;" />
     </v-app>
@@ -16,7 +19,9 @@ import NavBar from "@/components/NavBar.vue";
 //main socket connection
 import VueSocketIOExt, { Socket } from 'vue-socket.io-extended'
 import { io } from 'socket.io-client';
-import { axiosRequest } from './helpers';
+import { axiosRequest, defaultSocketEvents, customSocketEvents } from './helpers';
+import store from './store/index'
+import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from './constants';
 
 @Component({
   components: {
@@ -26,43 +31,49 @@ import { axiosRequest } from './helpers';
 export default class App extends Vue {
 
   theUser = this.$store.getters.user;
-
   appLoading = false;
 
   @Watch('$store.state.user')
   onUser(val: any) {
-    if(val) {
+   console.log('USER: ', val)
+   if(val) {
       this.theUser = val;
+      this.$store.commit('setFirstLoad', true);
     }
   }
 
-  async mounted() {
+  @Watch('$store.state.firstLoad') onFristLoadChanged(init: any) {
+    console.log('firstLoad Changed');
+    if(init) {
+      console.log('appInit Executed');
+      this.appInit()
+    }
+  }
+
+
+  async appInit() {
     this.appLoading = true;
     const sessionToken = this.$cookies.get('jwt'); 
     const user = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {}, {headers: {"x-auth-token": sessionToken}})
     if(user.data.email){
+      console.log('EXECUTE MAIN LOAD')
+      //set logged user
       const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: user.data.email}, {headers: {"x-auth-token": sessionToken}})
       this.theUser = fullUser.data;
       this.$store.commit('setUser', fullUser.data);
-      const socket = io('http://localhost:3000/'+fullUser.data._id);
-      Vue.use(VueSocketIOExt, socket);
-      console.log(this.theUser)
-
-      this.$socket.client.emit('USER_LOGGED', user.data)
+      //get user contacts
+      await this.$store.dispatch('GET_CONTACTS', { user: fullUser.data, jwtKey: sessionToken })
+      //join main socket namespace
+      const socket = io(process.env.VUE_APP_SOCKET_URL + '/user-'+fullUser.data._id);
+      Vue.use(VueSocketIOExt, socket, { store });
       this.appLoading = false;
+      //listen socket events
 
-      // VERIFY THAT .on DONT EXECUTE DUPLICATED TIMES
-      this.$socket.client.on('CONTACT_REQUEST', payload => {
-        console.log(payload)
-      });
+      defaultSocketEvents(socket, {store: this.$store});
+      customSocketEvents(socket, MAIN_APP_CONTACT_HANDLER, this.$store, { user: fullUser.data, jwtKey: sessionToken })
+      customSocketEvents(socket, MAIN_APP_MESSAGES, this.$store)
     }
   }
-
-  // ONLY WORK ON CHILDS OF APP.VUE
-  // @Socket('CONTACT_REQUEST')
-  // onContactRequest(val: any) {
-  //   console.log(val);
-  // }
 
   @Watch('$store.state.mainLoading')
   onAppLoaded(val: any) {

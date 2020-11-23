@@ -61,9 +61,9 @@ export default class Login extends Vue {
   ];
   public password = "";
   public passwordRules = [(v: any) => !!v || "Password Required"];
-  public login() {
+  public async login() {
     if ((this.$refs.form as Vue & { validate: () => boolean }).validate()) {
-      this.loginUser();
+      await this.loginUser();
     }
   }
 
@@ -75,13 +75,12 @@ export default class Login extends Vue {
         password: this.password
       })
       this.$cookies.set('jwt', user.data.accessToken, {
-        secure: false 
+        secure: false
       });
       this.$cookies.set('refreshToken', user.data.refreshToken, {
-        secure: false 
+        secure: false
       });
-      
-      
+            
       const theUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {}, {headers: {"x-auth-token": user.data.accessToken}})
       
       if(theUser.data.email) {
@@ -89,9 +88,10 @@ export default class Login extends Vue {
           this.$store.commit('setUser', fullUser.data);
           return;
       } else {
-        throw new Error('error in login.vue')
+        throw new Error('Error: Login.vue > response data is false')
       }
     } catch (error) {
+      alert(error);
       throw new Error(error);
     }
   }

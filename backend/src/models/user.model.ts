@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
     {
       status: String,
       contact_id: String,
+      lastMessage: String,
     }
   ]}
 });
@@ -33,7 +34,7 @@ userSchema.methods = {
         { user: { _id, email } },
         ACCESS_TOKEN_SECRET,
         {
-          expiresIn: "55m",
+          expiresIn: "24h",
         }
       );
       return accessToken;
@@ -49,7 +50,7 @@ userSchema.methods = {
         { user: { _id, email } },
         REFRESH_TOKEN_SECRET,
         {
-          expiresIn: "60m",
+          expiresIn: "720h", //30d
         }
       );
 

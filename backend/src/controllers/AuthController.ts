@@ -24,6 +24,7 @@ exports.signup = async (req, res) => {
   }
 };
 exports.login = async (req, res) => {
+  console.log('loggin requested')
   try {
     //check if user exists in database:
     let user = await User.findOne({ email: req.body.email });
@@ -37,7 +38,7 @@ exports.login = async (req, res) => {
         //generate a pair of tokens if valid and send
         let accessToken = await user.createAccessToken();
         let refreshToken = await user.createRefreshToken();
-
+        console.log('ASD')
         return res.status(201).json({ accessToken, refreshToken });
       } else {
         //send error if password is invalid
@@ -66,7 +67,7 @@ exports.generateRefreshToken = async (req, res) => {
         //extract payload from refresh token and generate a new access token and send it
         const payload = jwt.verify(tokenDoc.token, REFRESH_TOKEN_SECRET);
         const accessToken = jwt.sign({ user: payload }, ACCESS_TOKEN_SECRET, {
-          expiresIn: "55m",
+          expiresIn: "24h",
         });
         return res.status(200).json({ accessToken });
       }

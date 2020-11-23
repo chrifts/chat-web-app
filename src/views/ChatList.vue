@@ -31,13 +31,12 @@
     </div>
 </template>
 <script lang="ts">
-import { Component, Vue, Watch, Prop } from "vue-property-decorator";
-import * as firebase from "firebase";
-import "firebase/database";
-import { chatKey } from '../helpers';
+import { Component, Vue, Watch, Prop, Model } from "vue-property-decorator";
 import moment from 'moment';
 import VueScrollTo from 'vue-scrollto';
 import ResizeSensor from 'vue-resizesensor';
+import { axiosRequest } from '../helpers';
+import { io } from 'socket.io-client';
 
 Vue.use(VueScrollTo)
 Vue.component('ResizeSensor', ResizeSensor)
@@ -46,7 +45,14 @@ Vue.component('ResizeSensor', ResizeSensor)
 export default class ChatList extends Vue {
 
     @Prop() chatWindowProp: any;
+    
+    @Model('change') message!: any
 
+    @Watch('message')
+    onNewMessage(msg: any) {
+        console.log(msg)
+        this.messages.push(msg)
+    }
     scrollOpts = {
         container: '.chat-list-block',
         element: '.bubble:last-child',
@@ -62,6 +68,7 @@ export default class ChatList extends Vue {
     chatSelected = this.selectedChat;
     chatWindow = this.chatWindowProp;
     messageText: string;
+    api = (this.$root as any).urlApi;
     
     get mydata() {
         return this.$store.getters.user;
@@ -74,13 +81,12 @@ export default class ChatList extends Vue {
     public scrollBottom() {
         this.$scrollTo('.bubble:last-child', 0, this.scrollOpts)
     }
-    mounted() {
-        this.loadChat();
-    }
+
     onResize() {
         this.scrollBottom();
     }
     updated() {
+        
         if(/Android/.test(navigator.appVersion)) {
             window.addEventListener("resize", () => {
                 if(document.activeElement!.tagName=="DIV") { //ANDROID FIX: que scrollée solo si no escrolleó para arriba (leyendo mensajes anteriores)
@@ -93,46 +99,12 @@ export default class ChatList extends Vue {
     parseTime(time: any) {
         return moment(time).calendar();   
     }
-
-    loadChatBKP() {
-        try {
-            const ref = firebase.database().ref("chats/"+this.chatSelected.chatKey);
-            ref.once("value").then((snapshot) => {
-                if(!snapshot.exists()) {
-                    const newChat = firebase.database().ref("chats/"+this.chatSelected.chatKey).push()
-                    const initialMessage = {
-                        timestamp: Date.now(),
-                        message: "Here start the chat",
-                        chatKey: this.chatSelected.chatKey,
-                        from: 'server-first-message',
-                        to: 'all'
-                    }
-                    newChat.set(initialMessage);
-                    firebase.database().ref("chats/"+this.chatSelected.chatKey).once("value", (snapshot) => {
-                        const { [Object.keys(snapshot.val()) as any]: firstMessage } = snapshot.val();
-                        if(this.chatSelected.chatKey == firstMessage.chatKey) {
-                            this.messages = snapshot.val();
-                            this.loadChat();
-                        }
-                    })
-                } else {
-                    firebase.database().ref("chats/"+this.chatSelected.chatKey).on("value", (snapshot) => {
-                        const { [Object.keys(snapshot.val()).pop() as any]: lastItem } = snapshot.val();
-                        if(lastItem.from == this.chatSelected.auth._id || lastItem.to == this.chatSelected.auth._id) {
-                            this.messages = snapshot.val();
-                        }
-                        
-                    })
-                }
-            })
-        } catch (error) {
-            throw new Error(error)
-        }
+    async mounted(){
+        await this.loadChat()
     }
-
-    loadChat() {
-        
-        //DOCS: https://socket.io/docs/v3/client-api/index.html
+    async loadChat() {
+        const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: this.selectedChat.chatId}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
+        this.messages = res.data.messages        
     }
 
     @Watch("chatWindowProp")

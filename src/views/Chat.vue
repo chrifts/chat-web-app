@@ -3,7 +3,9 @@
     <!-- DESKTOP -->
     <div class="main-content" v-if="!$vuetify.breakpoint.mobile">
       
-      <Contacts @chatSelected="focusChat" />
+      <Contacts 
+        @chatSelected="focusChat"
+      />
       
       <v-col cols="8" style="padding: 0 !important">
         <div class="chat-main-view">
@@ -11,10 +13,11 @@
             <span style="position: relative; top: 300px;">Choose a chat</span>
           </div>
           <h1 class="header-block" 
-            v-if="chatSelected">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}
+            v-if="chatSelected">{{ chatSelected.profile.name + ' ' + chatSelected.profile.lastName  }}
           </h1>
           <ChatList v-if="chatSelected" 
             :chatWindowProp="chatWindow"
+            :message="newMessage ? newMessage : null"
           />
           <ChatFoot v-if="chatSelected"
             :chatWindowProp="chatWindow" 
@@ -38,7 +41,7 @@
                 </v-btn>
               </v-col>
               <v-col cols=10>
-                <h3 class="text-left mt-1">{{ chatSelected.extraData.firstName + ' ' + chatSelected.extraData.lastName  }}</h3>
+                <h3 class="text-left mt-1">{{ chatSelected.profile.name + ' ' + chatSelected.profile.lastName  }}</h3>
               </v-col>
             </v-row>
             
@@ -46,6 +49,7 @@
           </div>
           <ChatList v-if="chatSelected" 
             :chatWindowProp="chatWindow"
+            :message="newMessage ? newMessage : null"
           />
           <ChatFoot v-if="chatSelected"
             :chatWindowProp="chatWindow" 
@@ -63,8 +67,9 @@ import Contacts from "./chatContent/Contacts.vue";
 import ChatList from "./ChatList.vue";
 import ChatFoot from "./ChatFoot.vue";
 import VueScrollTo from 'vue-scrollto';
-import { chatKey } from '../helpers';
 import store from '@/store/index'
+import { axiosRequest, defaultSocketEvents } from '../helpers';
+import { io } from 'socket.io-client';
 Vue.use(VueScrollTo)
 
 @Component({
@@ -77,8 +82,6 @@ Vue.use(VueScrollTo)
 export default class Chat extends Vue {
   chatSelected: any | boolean = false;
   chatWindow = false;
-  
-  messageText: string;
   loading = false;
   scrollOpts = {
     container: '.chat-list-block',
@@ -91,21 +94,61 @@ export default class Chat extends Vue {
     x: false,
     y: true
   }
+  chatRoom: string;
+  socket;
+  api = (this.$root as any).urlApi;
+  newMessage = null;
 
   get mydata() {
     return this.$store.getters.user;
   }
 
-  focusChat(contact: any) {
-    this.chatWindow = true;
-    this.chatSelected = contact;
-    this.chatSelected.chatKey = chatKey(this.mydata._id, contact.auth._id);
-    store.commit('setSelectedChat', this.chatSelected);
+  async connectSocket() {
+    //get if exists or create chat room in db
+        console.log(this.chatSelected._id)
+        const members = [this.mydata._id, this.chatSelected._id].sort();
+        const res = await axiosRequest('POST', this.api + '/chat/get-or-create', {members: members}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+        console.log(res);
+        if(res.data.chat._id) {
+            this.chatRoom = res.data.chat._id;
+            //join socket room
+            const socket = io(process.env.VUE_APP_SOCKET_URL+'/chat-'+this.chatRoom, {query: {members: members}});
+            this.socket = socket;
+            this.socket.on('broadcast', (data)=>{
+                console.log(data)
+            })
+            this.socket.on('NEW_MESSAGE', (msg)=>{
+                console.log(msg)
+                this.newMessage=msg
+            })
+            defaultSocketEvents(this.socket);
+            //DOCS: https://socket.io/docs/v3/client-api/index.html
+        }
+  }
+
+  async focusChat(contact: any) {
+    if(this.chatSelected != contact) {
+      if(this.socket) {
+        this.socket.disconnect()
+      }
+      this.chatWindow = true;
+      this.chatSelected = contact;
+      await this.connectSocket()
+      this.chatSelected.chatId = this.chatRoom
+      store.commit('setSelectedChat', this.chatSelected);
+    }
   }
 
   @Watch('$store.state.selectedChat')
   onChangeChat(val: any) {
     this.chatSelected = val;
+  }
+
+  beforeDestroy(){
+    console.log('unmout chat')
+    if(this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   scrollBottom() {

@@ -4,8 +4,20 @@
     <v-toolbar color="primary" v-if="!$vuetify.breakpoint.mobile">
       <v-toolbar-title>
         <v-btn color="white" text :to="'/'">
-          APP NAME
+          {{appName}}
         </v-btn>
+        <v-badge
+          inline
+          dot
+          v-if="loggedIn && mainSocketStatus && !loading"
+          :color="mainSocketStatus == 'connected' ? 'green' : 'red'"
+        >
+          <span class="text-subtitle-1 text--disabled" title='Main socket status'>
+            {{mainSocketStatus}}  
+          </span>
+        </v-badge>
+        
+        
       </v-toolbar-title>
       
       <v-spacer></v-spacer>
@@ -55,6 +67,8 @@
         <v-icon center>{{ item.icon }}</v-icon>
       </v-btn>
     </v-bottom-navigation>
+    <span>{{loggedIn ? loggedIn.email : ''}}</span>
+    
   </div>
 </template>
 
@@ -62,15 +76,23 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import store from '@/store/index'
-import { Watch, Prop } from 'vue-property-decorator';
+import { Watch, Prop, Model } from 'vue-property-decorator';
 import { axiosRequest } from '../helpers';
 
 @Component({})
 export default class NavBar extends Vue {
 
+  @Model('change') socketStatus!: string;
+  @Watch('$store.state.mainAppSocketStatus')
+    onSocketStatusChange(ss: any) {
+        this.mainSocketStatus = ss;
+    }
+
+  mainSocketStatus = this.mainAppSocketStatus;
   chatSelected = this.selectedChat;
   loading = false;
   loggedIn = this.userLoggedIn;
+  appName = process.env.VUE_APP_NAME;
 
   get itemsNoAuth() {
     const menuItems = [
@@ -113,6 +135,10 @@ export default class NavBar extends Vue {
     return this.$store.getters.mainLoading;
   }
 
+  get mainAppSocketStatus() {
+    return this.$store.getters.mainAppSocketStatus;
+  }
+
   get userLoggedIn() {
     return this.$store.getters.user;
   }
@@ -145,9 +171,11 @@ export default class NavBar extends Vue {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
+.v-badge--dot .v-badge__badge {
+  margin-bottom: 3px !important;
+}
 .bottom-nav {
-  
   z-index: 2;
 }
 .content-between {

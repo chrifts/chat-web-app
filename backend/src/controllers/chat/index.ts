@@ -1,66 +1,101 @@
-
+const CM = require("../../models/chat.model");
 const UM = require("../../models/user.model");
 
-function ADD(io: any) {
+const getOrCreate = async (req, res) => {
+    //get chat where members
+    try {
 
-    const addContact = async (req, res) => {
-        
+        const chat = await CM.findOne({members: { "$eq" : req.body.members.sort()}}).lean()
+        if(chat !== null) {
+            //return chat
+            res.status(200).json({chat: chat});
+        } else {
+            //create and return
+            const chat = new CM(
+            { 
+                members: req.body.members 
+            });
+            chat.save(async function (err) {
+                if (err) {
+                    return res.json(err);
+                }
+                const created_chat = await CM.findOne({members: { "$eq" : req.body.members.sort()}}).lean()
+                res.status(200).json({chat: created_chat});
+            });
+            
+        }
+    } catch (error) {
+        res.status(500).json({error: error});
+        throw new Error(error)
+    }
+}
+
+function postMessage(io: any) {
+    const callback = async (req, res) => {
+        console.log(req.body)
         try {
-            const contact = await UM.findOne({email: req.body.contactEmail})
-            
-            
-            const me = await UM.findOne({email: req.body.myEmail}).lean()
-            if(contact && me) {
-                delete me.password;
-                delete me.contacts;
-                // console.log(io.of('/'+contact._id).sockets.entries().next().value[1])
-                io.of('/'+contact._id).emit('CONTACT_REQUEST', me)
-                //let socketId = io.of('/'+contact._id).sockets.entries().next().value[1].client.id;
-
-                //io.to(socketId).emit('CONTACT_REQUEST', me)
-
-                const added = await UM.findOneAndUpdate({
-                    email: req.body.myEmail
-                }, 
+            const chat = await CM.findOneAndUpdate(
                 {
-                    $push: {
-                        contacts: {
-                            status: 'sent',
-                            contact_id: contact._id
-                        }
-                    }
-                })
-                const insertInContact = await UM.findOneAndUpdate({
-                    email: req.body.contactEmail
+                    _id: req.body.chatId
                 },
                 {
                     $push: {
-                        contacts: {
-                            status: 'requested_by',
-                            contact_id: me._id
-                        }
+                        messages: req.body.message
                     }
-                })
-                
-                if(added && insertInContact) {
-                    res.send(200);
-                    
-
-                } else {
-                    res.send(500).json({error: 'Error adding contact'});
                 }
-            } else {
-                res.status(500).json({error: 'No user found'})
+            )
+            if(chat) {
+                io.of('/chat-'+req.body.chatId).emit('NEW_MESSAGE', req.body.message)
+                const chat = await CM.findOne(
+                    {
+                        _id: req.body.chatId,
+                    }
+                ).lean()
+
+                let i = 0;
+                for await (const user_id of chat.members) {
+                    
+                    const user = await UM.updateOne({
+                        _id: chat.members[i],
+                        "contacts.contact_id": chat.members[i+1 == 2 ? 0 : i+1]
+                    }, 
+                    {
+                        $set: {
+                            "contacts.$.lastMessage" : req.body.message.message
+                        }
+                    })
+                    i++;
+                }
+
+                chat.members.forEach(user_id => {
+                    io.of('/user-'+user_id).emit('MESSAGE_NOTIFICATION', req.body.message)    
+                });
+                
+                res.status(200).json({message: chat})
             }
         } catch (error) {
             res.status(500).json({error: error})
-            throw new Error(error);
+            throw new Error(error)
         }
-        
     }
-    return addContact;
+    return callback;
 }
 
+const getMessages = async (req, res) => {
+    try {
+        const chat = await CM.findOne({_id: req.body.chatId}).lean()
+        console.log(chat.messages);    
+        res.status(200).json({messages: chat.messages})
+    } catch (error) {
+        res.status(500).json({error: error})
+        throw new Error(error)
+    }
+    
+}
+
+
 export {
-    ADD
+    getOrCreate,
+    postMessage,
+    getMessages
 }

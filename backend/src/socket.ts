@@ -1,26 +1,29 @@
 module.exports = function(io: any) {
 
-    // io.on('connection', function(socket) {
-    //     console.log('user connected');
-    //     io.sockets.emit('WELCOME_MESSAGE', 'Hi everyone!')
 
-    //     //socket.on == espera un client.emit()
-    //     socket.on('USER_LOGGED', function(user){
-    //         //io.emit == envia un evento al/los client/s
-    //         // MAIN SOCKET LISTEN
-    //         socket.user = user;
-    //     });
+    //selected Chat Namespaces
+    const chatspaces = io.of(/^\/chat-\w+$/);
+    chatspaces.on('connection', socket => {
 
-    //     socket.on('disconnect', () => {
-    //         console.log('user disconnected');
-    //     });
-    // });
-    
+        const chatSpace = socket.nsp;
+        console.log('connected to ChatSpace: ', chatSpace.name)
+        // chatSpace.emit('broadcast', 'hello friends!');
+        socket.broadcast.emit('broadcast', 'hello friends')
+        socket.on('disconnect', () => {
+            console.log('disconnected from ChatSpace: '+chatSpace.name)
+        });
+    })
 
-    const workspaces = io.of(/^\/\w+$/);
-
+    //User Main Namespace
+    const workspaces = io.of(/^\/user-\w+$/);
     workspaces.on('connection', socket => {
         const workspace = socket.nsp;
-        socket.emit('CONTACT_REQUEST', 'asd');        
+        //console.log(workspace);
+        
+
+        
+        socket.on('disconnect', () => {
+            console.log('disconnected from user workspace')
+        });
     });
 }

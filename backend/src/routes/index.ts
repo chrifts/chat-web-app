@@ -3,7 +3,9 @@ const AuthController = require("../controllers/AuthController");
 const Middleware = require("../middlewares");
 const UserModel = require ("../models/user.model");
 
-import { ADD } from "../controllers/chat/index";
+import { ADD_CONTACT, GET_CONTACTS, HANDLE_CONTACT_REQUEST } from "../controllers/user/index";
+
+import { getOrCreate, postMessage, getMessages } from '../controllers/chat/index';
 
 module.exports = function(io: any) {
     
@@ -34,7 +36,17 @@ module.exports = function(io: any) {
         }
     }); 
 
-    router.post("/chat/add-contact", Middleware.checkAuth, ADD(io));    
+    router.post("/user/add-contact", Middleware.checkAuth, ADD_CONTACT(io));    
+    
+    router.post("/user/get-contacts", Middleware.checkAuth, GET_CONTACTS(io));
+    
+    router.post("/user/handle-contact-request", Middleware.checkAuth, HANDLE_CONTACT_REQUEST(io));
+
+    router.post("/chat/get-or-create", Middleware.checkAuth, getOrCreate);
+
+    router.post("/chat/get-messages", Middleware.checkAuth, getMessages);
+    
+    router.post("/chat/post-message", Middleware.checkAuth, postMessage(io));
     
     return router; 
 }
