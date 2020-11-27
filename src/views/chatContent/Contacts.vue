@@ -46,23 +46,28 @@
       </v-row>
       <v-row>
         <v-col cols=12 style="padding: 0">
-          <v-list three-line v-if="!contactsLoading">
+          <v-list  three-line v-if="!contactsLoading">
             <template  v-for="(item, index) in contacts">
               <v-list-item
                 v-if="item.status != 'rejected_by_me'"
                 :key="index"
                 v-on="item.status == 'connecteds' ? { click: () => selectChat(item) } : {}"
               >
-                <v-list-item-avatar>
-                  <v-img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'"></v-img>
-                </v-list-item-avatar>
-
-                <v-list-item-content>
-                  <v-list-item-title
-                    v-html="item.email"
-                  >
-                  </v-list-item-title>
+                <v-badge
+                  :content="item.notifications"
+                  :value="item.notifications"
+                  color="green"
+                  overlap
+                >
+                    
                   
+                  <v-list-item-avatar>
+                    <img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'">
+                  </v-list-item-avatar>
+                </v-badge>
+                <v-list-item-content>
+                  <v-list-item-title v-html="item.email"/>
+                                    
                   <v-list-item-subtitle v-if="item.status == 'requested_by'"> New contact request </v-list-item-subtitle>
                   <v-list-item-subtitle v-if="item.status == 'sent'"> Pending </v-list-item-subtitle>
                   <div v-else-if="item.status == 'rejected_by_contact'">
@@ -71,11 +76,47 @@
                     <v-btn @click="handleContactRequest(item._id, 'RESEND_CANCEL')">cancel</v-btn>
                   </div>
                   
-                  <v-list-item-subtitle v-if="item.status == 'connecteds'"> {{item.lastMessage ? item.lastMessage : 'Start chat'}} </v-list-item-subtitle>
+                  <v-list-item-subtitle v-if="item.status == 'connecteds'"> {{item.lastMessage ? item.lastMessage.message : 'Start chat'}} </v-list-item-subtitle>
 
-                  <v-btn v-if="item.status == 'requested_by'" @click="handleContactRequest(item._id, 'ACCEPTED')">accept</v-btn>
-                  <v-btn v-if="item.status == 'requested_by'" @click="handleContactRequest(item._id, 'REJECTED')">reject</v-btn>
+                  <v-btn 
+                    v-if="item.status == 'requested_by'" 
+                    @click="handleContactRequest(item._id, 'ACCEPTED')"
+                    elevation="2"
+                    icon
+                    outlined
+                  >accept</v-btn>
+                  <v-btn 
+                    v-if="item.status == 'requested_by'" 
+                    elevation="2"
+                    icon
+                    outlined
+                    @click="handleContactRequest(item._id, 'REJECTED')"
+                  >reject</v-btn>
                 </v-list-item-content>
+                <v-menu offset-y>
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-btn
+                        color="black"
+                        elevation="2"
+                        icon
+                        outlined
+                        v-bind="attrs"
+                        v-on="on"
+                      >
+                        <v-icon>
+                          mdi-chevron-down
+                        </v-icon>
+                        
+                      </v-btn>
+                    </template>
+                    <v-list-item>
+                      <a title="You and your contact, cannot receive or send messages until unblock">Block contact</a>
+                    </v-list-item>
+                    <v-list-item>
+                      <a title="Delete contact.">Delete contact</a>
+                    </v-list-item>
+                  </v-menu>
+                  
               </v-list-item>
             </template>
           </v-list>
@@ -88,10 +129,12 @@
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
 import { axiosRequest, emailRegex } from '@/helpers/index'
 import { Socket } from 'vue-socket.io-extended'
+import _ from 'lodash';
 
-@Component({})
+@Component
 export default class Contacts extends Vue {
 
+  lodash = _;
   newContactEmail = "";
   contacts = this.allContacts;
   addContactResponseMessage = "";
@@ -109,11 +152,17 @@ export default class Contacts extends Vue {
   }
   
   get allContacts() {
+    // const contacts = this.orderBy(this.$store.getters.allContacts, 'lastMessage.timestamp', 'desc')
+    // return contacts;
     return this.$store.getters.allContacts
   }
 
   selectChat(item: any) {
     this.$emit('chatSelected', item)
+  }
+
+  orderBy(array, element, type) {
+    return this.lodash.orderBy(array, [element], [type]);
   }
 
   async handleContactRequest(contactId: string, event: string) {
@@ -139,15 +188,17 @@ export default class Contacts extends Vue {
     }
   }
   mounted() {
-    this.contacts = this.allContacts;
+    this.contacts = this.orderBy(this.allContacts, 'lastMessage.timestamp', 'desc');
   }
 
 
   @Watch('$store.state.allContacts', { deep: true })
-  onChangeContacts(val: any) {
-    console.log(val);
-    this.contacts = val;
-    this.contactsLoading = false;
+  onChangeContacts(before: any, after: any) {
+    if(after != before) {
+      const sorted = this.orderBy(after, 'lastMessage.timestamp', 'desc');
+      this.contacts = sorted
+      this.contactsLoading = false;
+    }
   }
 
   async addContact(email: string) {
@@ -196,6 +247,9 @@ export default class Contacts extends Vue {
 </script>
 <style lang="scss">
 
+.v-list {
+  transition: all 0.9s ease-out;
+}
 
 .col-contacts {
   background: linear-gradient($main_2, $main_3);
@@ -223,4 +277,8 @@ export default class Contacts extends Vue {
   background-color: $main_2 !important;
   color: white !important;
 }
+.v-avatar {
+  transition: none !important;
+}
+
 </style>

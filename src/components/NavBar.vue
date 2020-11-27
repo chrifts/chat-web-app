@@ -7,6 +7,7 @@
           {{appName}}
         </v-btn>
         <v-badge
+          
           inline
           dot
           v-if="loggedIn && mainSocketStatus && !loading"
@@ -37,6 +38,39 @@
         </v-toolbar-items>
 
         <v-toolbar-items v-if="loggedIn && !loading">
+
+          <v-menu offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                color="white"
+                icon
+                v-bind="attrs"
+                v-on="on"
+              >
+                <v-icon>mdi-bell</v-icon>
+              </v-btn>
+            </template>
+            <v-list class="not-list" v-if="Object.keys(mainNotifications).length > 0 && mainNotifications.constructor === Object">
+              <v-list-item
+                v-for="(data, notifType) in mainNotifications"
+                :key="notifType"
+              >
+                <span>{{notifType}}</span>
+                <v-list class="not-list">
+                  <v-list-item
+                    v-for="(el, ix) in data"
+                    :key="ix"
+                  >
+                    <v-list-item-title>{{ el.length }} messages from </v-list-item-title>
+                    <v-list-item-subtitle>{{ el[0].from.email }}</v-list-item-subtitle>                    
+                  </v-list-item>
+                </v-list>
+                
+                <!-- <v-list-item-subtitle>{{ notificationType(item.source.type) }}</v-list-item-subtitle> -->
+              </v-list-item>
+            </v-list>
+          </v-menu>
+          
           <v-btn color="white" text v-for="item in itemsAuth" :key="item.title" :to="item.link">
             {{ item.title }}
             <v-icon right color="white">{{ item.icon }}</v-icon>
@@ -93,6 +127,7 @@ export default class NavBar extends Vue {
   loading = false;
   loggedIn = this.userLoggedIn;
   appName = process.env.VUE_APP_NAME;
+  mainNotifications = {};
 
   get itemsNoAuth() {
     const menuItems = [
@@ -126,7 +161,7 @@ export default class NavBar extends Vue {
         title: "Profile",
         icon: "mdi-account",
         link: "/profile"
-      }
+      },
     ];
     return menuItems;
   }
@@ -147,6 +182,23 @@ export default class NavBar extends Vue {
     return this.$store.getters.selectedChat;
   }
 
+  notificationType(data) {
+    let type;
+    switch (data) {
+      case 'new-message':
+        type = 'New message'
+        break;
+    
+      default:
+        break;
+    }
+    return type;
+  }
+
+  debugTemplate(data: any){
+    console.log(data)
+  }
+
   public logout() {
     axiosRequest('POST', (this.$root as any).urlApi + '/auth/logout', {refreshToken: this.$cookies.get('refreshToken')} )
     store.commit("setMainLoading", true);
@@ -157,9 +209,20 @@ export default class NavBar extends Vue {
   }
   @Watch('$store.state.mainLoading')
   onMainLoading(val: any) {
-    
     this.loading = val;
   }
+
+  // mounted(){
+
+  // }
+
+  @Watch('$store.state.mainNotifications', { deep : true, immediate: true })
+  onMainNotificationsChange(val: any) {
+    console.log(val);
+    this.mainNotifications = val;
+    console.log(this.mainNotifications)
+  }
+
   @Watch('$store.state.user')
   onUser(val: any) {
     this.loggedIn = val;
@@ -174,6 +237,9 @@ export default class NavBar extends Vue {
 <style lang="scss">
 .v-badge--dot .v-badge__badge {
   margin-bottom: 3px !important;
+}
+.not-list {
+  width: 300px;
 }
 .bottom-nav {
   z-index: 2;

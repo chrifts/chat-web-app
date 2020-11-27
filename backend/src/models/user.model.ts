@@ -16,11 +16,12 @@ const userSchema = new mongoose.Schema({
       imgUrl: {type: String, default: ''}
     }
   },
+  notifications: [],
   contacts: {type: [
     {
       status: String,
       contact_id: String,
-      lastMessage: String,
+      lastMessage: {},
     }
   ]}
 });

@@ -12,6 +12,7 @@ export default new Vuex.Store({
     status: null,
     selectedChat: null,
     mainLoading: false,
+    mainNotifications: {},
     allContacts: [{
       status: String,
       lastMessage: String,
@@ -19,10 +20,39 @@ export default new Vuex.Store({
     mainAppSocketStatus: 'connecting...'
   },
   mutations: {
+    updateNotifications(state, payload){
+      if(payload.notification) {
+        switch (payload.notification.type) {
+          case 'new-message':
+            console.log('new message case', payload)             
+            state.allContacts.forEach((contact: any, index) => { 
+              if(contact._id == payload.from) {
+                if(state.mainNotifications[payload.notification.type]) {
+                  state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
+                  state.mainNotifications = {...state.mainNotifications}
+                } else {
+                  state.mainNotifications[payload.notification.type] = {}
+                  state.mainNotifications[payload.notification.type][contact._id] = []
+                  state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
+                  state.mainNotifications = {...state.mainNotifications}
+                }
+                
+              }
+            })
+            break;
+        
+          default:
+            break;
+        }
+        
+      }
+    },
     updateContactLastMessage(state, payload) {
+      console.log(payload)
       state.allContacts.forEach((contact: any, index) => {
         if(contact._id == payload.to || contact._id == payload.from) {
-          state.allContacts[index].lastMessage = payload.message
+          state.allContacts[index].lastMessage = payload
+          
           state.allContacts = [...state.allContacts];
         }
       })

@@ -105,10 +105,9 @@ export default class Chat extends Vue {
 
   async connectSocket() {
     //get if exists or create chat room in db
-        console.log(this.chatSelected._id)
+        
         const members = [this.mydata._id, this.chatSelected._id].sort();
         const res = await axiosRequest('POST', this.api + '/chat/get-or-create', {members: members}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
-        console.log(res);
         if(res.data.chat._id) {
             this.chatRoom = res.data.chat._id;
             //join socket room
@@ -118,8 +117,7 @@ export default class Chat extends Vue {
                 console.log(data)
             })
             this.socket.on('NEW_MESSAGE', (msg)=>{
-                console.log(msg)
-                this.newMessage=msg
+                this.newMessage = msg
             })
             defaultSocketEvents(this.socket);
             //DOCS: https://socket.io/docs/v3/client-api/index.html
@@ -140,8 +138,11 @@ export default class Chat extends Vue {
   }
 
   @Watch('$store.state.selectedChat')
-  onChangeChat(val: any) {
-    this.chatSelected = val;
+  onChangeChat(selected: any, before: any) {
+    console.log('SELECTED CHAT',  selected, 'LAST CHAT: ', before);
+    //read notifications from selected and before
+    //axiosRequest('POST', this.api + '/chat/read-notification', {leaved: before, selected: selected}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+    this.chatSelected = selected;
   }
 
   beforeDestroy(){

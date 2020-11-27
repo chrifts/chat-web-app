@@ -86,7 +86,6 @@ export default class ChatList extends Vue {
         this.scrollBottom();
     }
     updated() {
-        
         if(/Android/.test(navigator.appVersion)) {
             window.addEventListener("resize", () => {
                 if(document.activeElement!.tagName=="DIV") { //ANDROID FIX: que scrollée solo si no escrolleó para arriba (leyendo mensajes anteriores)

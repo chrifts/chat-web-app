@@ -113,9 +113,15 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
     if(context == MAIN_APP_MESSAGES) {
         socket.on('MESSAGE_NOTIFICATION', (payload) => {
             console.log('New message: ', payload)
+            //PAY LOAD TIENE LA NOTIFICACION CORRESPONDIENTE
             store.commit('updateContactLastMessage', payload)
+            if(payload.notification) {
+                store.commit('updateNotifications', payload)
+            }
+            
             //SEND A NOTIFICATION TO PAYLOAD MEMBERS (from to)
         });
+        
     }
 }
 

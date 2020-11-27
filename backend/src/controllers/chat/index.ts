@@ -51,8 +51,8 @@ function postMessage(io: any) {
                         _id: req.body.chatId,
                     }
                 ).lean()
-
                 let i = 0;
+                //TODO: Make this for await fully dynamic
                 for await (const user_id of chat.members) {
                     
                     const user = await UM.updateOne({
@@ -61,13 +61,35 @@ function postMessage(io: any) {
                     }, 
                     {
                         $set: {
-                            "contacts.$.lastMessage" : req.body.message.message
+                            "contacts.$.lastMessage" : {message: req.body.message.message, timestamp: req.body.message.timestamp},
                         }
                     })
                     i++;
                 }
 
+                console.log(req.body.message);
+                const notification = {
+                    from: req.body.from,
+                    to: req.body.to,
+                    type: 'new-message',
+                }
+
+                const user_not = await UM.updateOne({
+                    _id: req.body.message.to,
+                }, 
+                {
+                    $push : {
+                        "notifications" : notification
+                    }
+                })
+                
+                
                 chat.members.forEach(user_id => {
+                    if(user_id == req.body.message.to) {
+                        req.body.message.notification = notification;
+                    } else {
+                        req.body.message.notification = null;
+                    }
                     io.of('/user-'+user_id).emit('MESSAGE_NOTIFICATION', req.body.message)    
                 });
                 
@@ -92,7 +114,6 @@ const getMessages = async (req, res) => {
     }
     
 }
-
 
 export {
     getOrCreate,

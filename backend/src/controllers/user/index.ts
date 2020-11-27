@@ -109,6 +109,7 @@ function HANDLE_CONTACT_REQUEST(io: any) {
     //@CONTACT_REQUEST_RESEND
     //@CONTACT_REQUEST_ACCEPTED
     //@CONTACT_REQUEST_REJECTED
+    //@CONTACT_STATUS_RESEND_CANCEL
     const callback = async (req, res) => {
         
         try {
