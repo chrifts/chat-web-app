@@ -139,7 +139,7 @@ export default class Chat extends Vue {
 
   @Watch('$store.state.selectedChat')
   onChangeChat(selected: any, before: any) {
-    console.log('SELECTED CHAT',  selected, 'LAST CHAT: ', before);
+    // console.log('SELECTED CHAT',  selected, 'LAST CHAT: ', before);
     //read notifications from selected and before
     //axiosRequest('POST', this.api + '/chat/read-notification', {leaved: before, selected: selected}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
     this.chatSelected = selected;

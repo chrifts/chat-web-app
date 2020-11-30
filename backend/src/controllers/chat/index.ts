@@ -1,5 +1,8 @@
+import { NEW_MESSAGE } from "../../constants";
+
 const CM = require("../../models/chat.model");
 const UM = require("../../models/user.model");
+const ObjectID = require('mongodb').ObjectID;
 
 const getOrCreate = async (req, res) => {
     //get chat where members
@@ -31,6 +34,7 @@ const getOrCreate = async (req, res) => {
 }
 
 function postMessage(io: any) {
+    const notificationType = NEW_MESSAGE;
     const callback = async (req, res) => {
         console.log(req.body)
         try {
@@ -68,21 +72,29 @@ function postMessage(io: any) {
                 }
 
                 console.log(req.body.message);
-                const notification = {
-                    from: req.body.from,
-                    to: req.body.to,
-                    type: 'new-message',
-                }
-
-                const user_not = await UM.updateOne({
-                    _id: req.body.message.to,
-                }, 
-                {
-                    $push : {
-                        "notifications" : notification
-                    }
-                })
+                const sender = req.body.message.from;
+                delete sender.contacts;
+                delete sender.notifications;
                 
+                const notification = {
+                    _id: ObjectID(),
+                    extraDataFrom: sender,
+                    from: req.body.message.from._id,
+                    message: req.body.message.message,
+                    timestamp: req.body.message.timestamp,
+                    type: notificationType,
+                };
+                const user = await UM.findOneAndUpdate({
+                        _id: req.body.message.to,
+                    },
+                    {
+                        $push: {
+                            [`notifications.${notificationType}.${req.body.message.from._id}`]: notification
+                        },
+                        
+                    },{multi: true}
+                    
+                ).exec()
                 
                 chat.members.forEach(user_id => {
                     if(user_id == req.body.message.to) {
@@ -106,7 +118,19 @@ function postMessage(io: any) {
 const getMessages = async (req, res) => {
     try {
         const chat = await CM.findOne({_id: req.body.chatId}).lean()
-        console.log(chat.messages);    
+        //DELETE NEW-MESSAGE NOTIFICATIONS FROM CONTACT
+        console.log(req.body)
+        if(req.body.contact) {
+            const user = await UM.findOneAndUpdate({
+                _id: req.body.user._id,
+            },
+            {
+                $unset: [`notifications.${NEW_MESSAGE}.${req.body.contact._id}`],
+                
+            }
+            ).exec()
+        }  
+        
         res.status(200).json({messages: chat.messages})
     } catch (error) {
         res.status(500).json({error: error})

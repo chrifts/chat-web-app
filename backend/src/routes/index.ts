@@ -21,12 +21,12 @@ module.exports = function(io: any) {
     router.post('/get-user', Middleware.checkAuth, async function (req, res) {
         if(req.body.getFull) {
             console.log('entro');
-            let fullUser = await UserModel.findOne({ email: req.body.email });
+            let fullUser = await UserModel.findOne({ email: req.body.email }).lean();
+            console.log(fullUser);
             if(fullUser) {
-                fullUser = fullUser.toObject()
                 delete fullUser.password;
             }
-            res.status(200).json(fullUser);
+            res.status(200).send(fullUser);
             return;
         }
         if(req.user.email) {

@@ -5,6 +5,13 @@ import router from "../router";
 
 Vue.use(Vuex);
 
+interface Notifications { 
+  [type: string]: { 
+    [from: string]: any; 
+  }; 
+}
+const notif: Notifications = { };
+
 export default new Vuex.Store({
   state: {
     firstLoad: false,
@@ -12,7 +19,7 @@ export default new Vuex.Store({
     status: null,
     selectedChat: null,
     mainLoading: false,
-    mainNotifications: {},
+    mainNotifications: notif,
     allContacts: [{
       status: String,
       lastMessage: String,
@@ -21,13 +28,16 @@ export default new Vuex.Store({
   },
   mutations: {
     updateNotifications(state, payload){
+      
       if(payload.notification) {
-        switch (payload.notification.type) {
+        switch (payload.notification.type) {          
           case 'new-message':
-            console.log('new message case', payload)             
+            //console.log('new message case', payload)             
             state.allContacts.forEach((contact: any, index) => { 
-              if(contact._id == payload.from) {
+              if(contact._id == payload.from._id) {
+                //console.log(state.mainNotifications);
                 if(state.mainNotifications[payload.notification.type]) {
+                  state.mainNotifications[payload.notification.type][contact._id] ? null : state.mainNotifications[payload.notification.type][contact._id] = [];
                   state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
                   state.mainNotifications = {...state.mainNotifications}
                 } else {
@@ -36,7 +46,6 @@ export default new Vuex.Store({
                   state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
                   state.mainNotifications = {...state.mainNotifications}
                 }
-                
               }
             })
             break;
@@ -46,11 +55,14 @@ export default new Vuex.Store({
         }
         
       }
+      if(payload.notifications) {
+        state.mainNotifications = payload.notifications; 
+      }
     },
     updateContactLastMessage(state, payload) {
-      console.log(payload)
+      //console.log(payload)
       state.allContacts.forEach((contact: any, index) => {
-        if(contact._id == payload.to || contact._id == payload.from) {
+        if(contact._id == payload.to || contact._id == payload.from._id) {
           state.allContacts[index].lastMessage = payload
           
           state.allContacts = [...state.allContacts];
@@ -70,7 +82,7 @@ export default new Vuex.Store({
       state.allContacts.push(payload)
     },
     updateContactStatus(state, payload) {
-      console.log(payload);
+      //console.log(payload);
       switch (payload.event) {
         case 'ACCEPTED':
           state.allContacts.forEach((contact: any, index) => {
@@ -98,7 +110,9 @@ export default new Vuex.Store({
       }
     },
     setUser(state, payload) {
+      //console.log(payload);
       state.user = payload;
+      
     },
     setStatus(state, payload) {
       state.status = payload;
@@ -115,6 +129,16 @@ export default new Vuex.Store({
       const res = await axiosRequest('POST', process.env.VUE_APP_API + '/user/get-contacts', {email: payload.user.email}, {headers: {"x-auth-token": payload.jwtKey}})
       commit('SOCKET_setContacts', res.data.contacts)
     },
+    SET_USER({commit}, payload) {
+      
+      commit('setUser',payload)
+      if(payload.notifications) {
+        this.dispatch('UPDATE_NOTIF', payload)
+      }
+    },
+    UPDATE_NOTIF({commit}, payload) {
+      commit('updateNotifications', payload)
+    },
     REGISTER_USER({ commit }, payload) {
       commit("setStatus", "busy");
       commit("setUser", payload);
@@ -126,13 +150,16 @@ export default new Vuex.Store({
       commit('setFirstLoad', false);
       commit("setStatus", "busy");
       commit("setUser", null);
-      console.log('empty contacts')
+      //console.log('empty contacts')
       commit("SOCKET_setContacts", []);
       commit("setStatus", "success");
       router.push("/login");
     }
   },
   getters: {
+    mainNotifs(state) {
+      return state.mainNotifications;
+    },
     mainAppSocketStatus(state) {
       return state.mainAppSocketStatus;
     },

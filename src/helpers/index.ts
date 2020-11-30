@@ -80,9 +80,9 @@ function defaultSocketEvents (socket: any, opts?: {context?: string, store: any}
 }
 
 function customSocketEvents(socket: any,  context: string, store: any, auth?: {}) {
-    console.log('executed customSoket')
+    
     if(context == MAIN_APP_CONTACT_HANDLER) {
-        console.log('on If')
+        
         socket.on('CONTACT_STATUS_ACCEPTED', async (payload) => {
             await store.dispatch('GET_CONTACTS', auth)
             store.commit('updateContactStatus', {payload: payload, event:'ACCEPTED'})

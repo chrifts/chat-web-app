@@ -50,7 +50,7 @@ export default class ChatList extends Vue {
 
     @Watch('message')
     onNewMessage(msg: any) {
-        console.log(msg)
+        // console.log(msg)
         this.messages.push(msg)
     }
     scrollOpts = {
@@ -99,10 +99,11 @@ export default class ChatList extends Vue {
         return moment(time).calendar();   
     }
     async mounted(){
-        await this.loadChat()
+        await this.loadChat(this.chatSelected)
     }
-    async loadChat() {
-        const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: this.selectedChat.chatId}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
+    async loadChat(contact) {
+        console.log(contact)
+        const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: this.selectedChat.chatId, user: this.mydata, contact: contact}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
         this.messages = res.data.messages        
     }
 
@@ -114,7 +115,7 @@ export default class ChatList extends Vue {
     @Watch("$store.state.selectedChat")
     onChangedChat(val: any) {
         this.chatSelected = val;
-        this.loadChat();
+        this.loadChat(val);
     }
 
     @Watch("messages")

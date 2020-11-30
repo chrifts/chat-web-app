@@ -53,18 +53,15 @@
                 :key="index"
                 v-on="item.status == 'connecteds' ? { click: () => selectChat(item) } : {}"
               >
-                <v-badge
-                  :content="item.notifications"
-                  :value="item.notifications"
+                <v-list-item-avatar>
+                  <img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'">
+                </v-list-item-avatar>
+                <v-badge v-if="mainNotifications['new-message']"
+                  :content="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
+                  :value="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
                   color="green"
                   overlap
-                >
-                    
-                  
-                  <v-list-item-avatar>
-                    <img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'">
-                  </v-list-item-avatar>
-                </v-badge>
+                ></v-badge>
                 <v-list-item-content>
                   <v-list-item-title v-html="item.email"/>
                                     
@@ -142,6 +139,7 @@ export default class Contacts extends Vue {
   api: string = (this.$root as any).urlApi;
   addingContact = false;
   contactsLoading = false;
+  mainNotifications = this.mainNotif;
 
   defineContactEmail(val: string) {
     this.newContactEmail = val;
@@ -157,8 +155,18 @@ export default class Contacts extends Vue {
     return this.$store.getters.allContacts
   }
 
+  get mainNotif() {
+    return this.$store.getters.mainNotifs
+  }
+
+  @Watch('$store.state.mainNotifications', {deep: true})
+  onMainNotificationsChange(val: any) {
+    this.mainNotifications = val;
+  }
+
   selectChat(item: any) {
     this.$emit('chatSelected', item)
+    
   }
 
   orderBy(array, element, type) {
@@ -180,7 +188,7 @@ export default class Contacts extends Vue {
           headers: {"x-auth-token": this.$cookies.get('jwt')
         }
       })
-      console.log(response);
+      // console.log(response);
       
         
     } catch (error) {
@@ -194,6 +202,7 @@ export default class Contacts extends Vue {
 
   @Watch('$store.state.allContacts', { deep: true })
   onChangeContacts(before: any, after: any) {
+    console.log(before, after);
     if(after != before) {
       const sorted = this.orderBy(after, 'lastMessage.timestamp', 'desc');
       this.contacts = sorted

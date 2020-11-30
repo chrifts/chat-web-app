@@ -129,11 +129,12 @@ export default class ChatFoot extends Vue {
         this.newMessage = {
             timestamp: messageTime,
             message: this.messageText,
-            from: this.mydata._id,
+            from: this.mydata,
             to: this.chatSelected._id
         }
+
         //POST MESSAGE
-        axiosRequest('POST', this.api + '/chat/post-message', {chatId: this.chatSelected.chatId, message: this.newMessage}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+        axiosRequest('POST', this.api + '/chat/post-message', {chatId: this.chatSelected.chatId, message: this.newMessage }, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
         // eslint-disable-next-line
         theTextArea.innerText = '';
         return;

@@ -85,7 +85,8 @@ export default class Login extends Vue {
       
       if(theUser.data.email) {
           const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: theUser.data.email}, {headers: {"x-auth-token": user.data.accessToken}})
-          this.$store.commit('setUser', fullUser.data);
+          // this.$store.commit('setUser', fullUser.data);
+          this.$store.dispatch('SET_USER', fullUser.data);
           return;
       } else {
         throw new Error('Error: Login.vue > response data is false')

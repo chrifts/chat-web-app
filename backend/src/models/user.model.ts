@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
       imgUrl: {type: String, default: ''}
     }
   },
-  notifications: [],
+  notifications: {},
   contacts: {type: [
     {
       status: String,

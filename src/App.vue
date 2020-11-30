@@ -35,7 +35,7 @@ export default class App extends Vue {
 
   @Watch('$store.state.user')
   onUser(val: any) {
-   console.log('USER: ', val)
+   
    if(val) {
       this.theUser = val;
       this.$store.commit('setFirstLoad', true);
@@ -43,9 +43,9 @@ export default class App extends Vue {
   }
 
   @Watch('$store.state.firstLoad') onFristLoadChanged(init: any) {
-    console.log('firstLoad Changed');
+    
     if(init) {
-      console.log('appInit Executed');
+    
       this.appInit()
     }
   }
@@ -56,13 +56,13 @@ export default class App extends Vue {
     const sessionToken = this.$cookies.get('jwt'); 
     const user = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {}, {headers: {"x-auth-token": sessionToken}})
     if(user.data.email){
-      console.log('EXECUTE MAIN LOAD')
       //set logged user
-      const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: user.data.email}, {headers: {"x-auth-token": sessionToken}})
+      const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: user.data.email}, {headers: {"x-auth-token": sessionToken}})      
       this.theUser = fullUser.data;
-      this.$store.commit('setUser', fullUser.data);
       //get user contacts
       await this.$store.dispatch('GET_CONTACTS', { user: fullUser.data, jwtKey: sessionToken })
+      //save user data
+      this.$store.dispatch('SET_USER', fullUser.data);          
       //join main socket namespace
       const socket = io(process.env.VUE_APP_SOCKET_URL + '/user-'+fullUser.data._id);
       Vue.use(VueSocketIOExt, socket, { store });
