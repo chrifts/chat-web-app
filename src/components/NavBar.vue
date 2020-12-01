@@ -45,18 +45,17 @@
 
               
               <v-btn
-                @click="readed = true"
+                @click="hasNotifications = false"
                 color="white"
                 icon
                 v-bind="attrs"
                 v-on="on"
               >
                 <v-badge
-                  v-if="Object.keys(mainNotifications).length > 0"
                   color="red"
                   overlap
-                  :content="readed ? null : Object.keys(mainNotifications).length"
-                  :value="readed ? null : Object.keys(mainNotifications).length"
+                  :content="totalNotifications"
+                  :value="hasNotifications"
                 >
                   
                   <v-icon>mdi-bell</v-icon>
@@ -69,20 +68,26 @@
               <v-list-item
                 v-for="(data, notifType) in mainNotifications"
                 :key="notifType"
+                :class="{'d-none': Object.keys(data).length < 1}"
               >
-                <span>{{parseNotificationType(notifType)}}</span>
-                <v-list class="not-list">
-                  <!-- Loop users -->
-                  <v-list-item
-                    v-for="(el, ix) in data"
-                    :key="ix"
-                  >
-                    <!-- <v-list-item-title>{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title> -->
-                    <!-- <v-list-item-subtitle>{{ el[0].extraDataFrom.email }}</v-list-item-subtitle>                     -->
-                  </v-list-item>
-                </v-list>
                 
-                <!-- <v-list-item-subtitle>{{ notificationType(item.source.type) }}</v-list-item-subtitle> -->
+                  <span >{{parseNotificationType(notifType)}}</span>
+                  <v-list class="not-list">
+                    <!-- Loop users -->
+                    <v-list-item
+                      v-for="(el, ix) in data"
+                      :key="ix"
+                    >
+                      <v-list-item-title v-if="notifType == 'new-message'">{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title>
+                      <v-list-item-title v-if="notifType == 'contact-request'"> 
+                        <!-- <span v-if="el[0].message.status == 'connecteds'"> accepted from</span> -->
+                        {{el[0].message.status}} 
+                      </v-list-item-title>
+                      <v-list-item-subtitle>{{ el[0].extraDataFrom.email }}</v-list-item-subtitle>                    
+                    </v-list-item>
+                  </v-list>
+                
+                
               </v-list-item>
             </v-list>
           </v-menu>
@@ -145,6 +150,8 @@ export default class NavBar extends Vue {
   appName = process.env.VUE_APP_NAME;
   mainNotifications = this.mainNotif;
   readed = false;
+  hasNotifications = false;
+  totalNotifications = 0;
 
   get itemsNoAuth() {
     const menuItems = [
@@ -161,7 +168,9 @@ export default class NavBar extends Vue {
     ];
     return menuItems;
   }
-
+  setTotalNotif(q) {
+    this.totalNotifications+=q;
+  }
   get itemsAuth() {
     const menuItems = [
       {
@@ -208,7 +217,9 @@ export default class NavBar extends Vue {
       case 'new-message':
         type = 'New message'
         break;
-    
+      case 'contact-request':
+        type = 'Contact request'
+        break;
       default:
         break;
     }
@@ -235,6 +246,16 @@ export default class NavBar extends Vue {
 
   @Watch('$store.state.mainNotifications', { deep : true, immediate: true })
   onMainNotificationsChange(val: any) {
+    let totalN = 0;
+    Object.entries(val).forEach(([type, contacts])=> {
+      if(Object.keys(contacts as {}).length > 0) {
+        Object.entries(contacts as {}).forEach(([ix, contact])=> {
+          totalN += (contact as []).length;
+        })
+        this.hasNotifications = true;
+        this.totalNotifications = totalN;
+      } 
+    })
     
     this.mainNotifications = val;
     console.log(this.mainNotifications);

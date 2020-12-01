@@ -1,3 +1,4 @@
+import { CONTACT_REQUEST, NEW_MESSAGE } from "@/constants";
 import { axiosRequest } from "@/helpers";
 import Vue from "vue";
 import Vuex from "vuex";
@@ -28,41 +29,57 @@ export default new Vuex.Store({
   },
   mutations: {
     updateNotifications(state, payload){
-      
+      if(payload == 'logout') {
+        state.mainNotifications = {};
+        state.mainNotifications = {...state.mainNotifications}
+        return;
+      }
+      console.log(payload);
       if(payload.notification) {
-        switch (payload.notification.type) {          
-          case 'new-message':
-            //console.log('new message case', payload)             
-            state.allContacts.forEach((contact: any, index) => { 
-              if(contact._id == payload.from._id) {
-                //console.log(state.mainNotifications);
-                if(state.mainNotifications[payload.notification.type]) {
-                  state.mainNotifications[payload.notification.type][contact._id] ? null : state.mainNotifications[payload.notification.type][contact._id] = [];
-                  state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
-                  state.mainNotifications = {...state.mainNotifications}
-                } else {
-                  state.mainNotifications[payload.notification.type] = {}
-                  state.mainNotifications[payload.notification.type][contact._id] = []
-                  state.mainNotifications[payload.notification.type][contact._id].push({from: contact, data: payload})
-                  state.mainNotifications = {...state.mainNotifications}
-                }
+        state.allContacts.forEach((contact: any, index) => { 
+          if(contact._id == payload.from) {
+            //console.log(state.mainNotifications);
+            if(state.mainNotifications[payload.type]) {
+              state.mainNotifications[payload.type][contact._id] ? null : state.mainNotifications[payload.type][contact._id] = [];
+              switch (payload.type) {
+                case NEW_MESSAGE:
+                  state.mainNotifications[payload.type][contact._id].push(payload)    
+                  break;
+                case CONTACT_REQUEST:
+                  state.mainNotifications[payload.type][contact._id] = []  
+                  state.mainNotifications[payload.type][contact._id].push(payload)
+                  break;
+                default:
+                  break;
               }
-            })
-            break;
-        
-          default:
-            break;
-        }
-        
+              
+              state.mainNotifications = {...state.mainNotifications}
+            } else {
+              state.mainNotifications[payload.type] = {}
+              state.mainNotifications[payload.type][contact._id] = []
+              switch (payload.type) {
+                case NEW_MESSAGE:
+                  state.mainNotifications[payload.type][contact._id].push(payload)    
+                  break;
+                case CONTACT_REQUEST:
+                  state.mainNotifications[payload.type][contact._id] = []  
+                state.mainNotifications[payload.type][contact._id].push(payload)
+                  break;
+                default:
+                  break;
+              }
+              state.mainNotifications = {...state.mainNotifications}
+            }
+          }
+        })
       }
       if(payload.notifications) {
         state.mainNotifications = payload.notifications; 
       }
     },
     updateContactLastMessage(state, payload) {
-      //console.log(payload)
       state.allContacts.forEach((contact: any, index) => {
-        if(contact._id == payload.to || contact._id == payload.from._id) {
+        if(contact._id == payload.to || contact._id == payload.from) {
           state.allContacts[index].lastMessage = payload
           
           state.allContacts = [...state.allContacts];
@@ -79,7 +96,12 @@ export default new Vuex.Store({
       state.allContacts = payload;
     },
     addContact(state, payload) {
-      state.allContacts.push(payload)
+      if(payload.extraDataFrom) {
+        state.allContacts.push(payload.extraDataFrom)
+      } else {
+        state.allContacts.push(payload)
+      }
+      
     },
     updateContactStatus(state, payload) {
       //console.log(payload);
@@ -131,7 +153,7 @@ export default new Vuex.Store({
     },
     SET_USER({commit}, payload) {
       
-      commit('setUser',payload)
+      commit('setUser', payload)
       if(payload.notifications) {
         this.dispatch('UPDATE_NOTIF', payload)
       }
@@ -150,7 +172,7 @@ export default new Vuex.Store({
       commit('setFirstLoad', false);
       commit("setStatus", "busy");
       commit("setUser", null);
-      //console.log('empty contacts')
+      commit('updateNotifications', 'logout')
       commit("SOCKET_setContacts", []);
       commit("setStatus", "success");
       router.push("/login");

@@ -107,12 +107,15 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
             console.log(payload)
             //add incoming Contact request to store
             store.commit('addContact', payload)
+            if(payload.notification){
+                store.commit('updateNotifications', payload)
+            }
         });
     }
 
     if(context == MAIN_APP_MESSAGES) {
         socket.on('MESSAGE_NOTIFICATION', (payload) => {
-            console.log('New message: ', payload)
+            
             //PAY LOAD TIENE LA NOTIFICACION CORRESPONDIENTE
             store.commit('updateContactLastMessage', payload)
             if(payload.notification) {

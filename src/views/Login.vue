@@ -74,6 +74,7 @@ export default class Login extends Vue {
         email: this.email,
         password: this.password
       })
+      console.log(user);
       this.$cookies.set('jwt', user.data.accessToken, {
         secure: false
       });
@@ -86,6 +87,7 @@ export default class Login extends Vue {
       if(theUser.data.email) {
           const fullUser = await axiosRequest('POST', (this.$root as any).urlApi + '/get-user', {getFull: true, email: theUser.data.email}, {headers: {"x-auth-token": user.data.accessToken}})
           // this.$store.commit('setUser', fullUser.data);
+          
           this.$store.dispatch('SET_USER', fullUser.data);
           return;
       } else {

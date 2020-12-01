@@ -1,10 +1,12 @@
+import { CONTACT_REQUEST } from "../../constants";
+import { readNotification, sendNotification } from "../../helpers";
 
 const UM = require("../../models/user.model");
 
 function ADD_CONTACT(io: any) {
-
+    
     const callback = async (req, res) => {
-        
+            
         try {
             
             const contact = await UM.findOne({email: req.body.contactEmail}).lean()
@@ -51,10 +53,12 @@ function ADD_CONTACT(io: any) {
                 
                 if(added && insertInContact) {
                     me.status = 'requested_by'
-                    io.of('/user-'+contact._id).emit('CONTACT_REQUEST', me)
-                    delete contact.password;
-                    delete contact._id;
-                    delete contact.contacts;
+                    console.log(me, contact)
+                    await sendNotification(me, contact._id, {message: {event:'NEW_CONTACT', status: 'new contact from'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
+                    //io.of('/user-'+contact._id).emit('CONTACT_REQUEST', me)
+                    // delete contact.password;
+                    // delete contact._id;
+                    // delete contact.contacts;
                     contact.status = 'sent'
                     res.json({contact_data: contact});
                 } else {
@@ -145,6 +149,8 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         })
                         my_data.status = 'connecteds';
                         contact_data.status = 'connecteds';
+                        await sendNotification(my_data, contact_data._id, {message: {event:'ACCEPTED', status: 'connecteds'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
+                        await readNotification(my_data, contact_data, CONTACT_REQUEST)
                         io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
                         res.status(200).json({event:'ACCEPTED', status: 'connecteds'})
@@ -177,9 +183,10 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         })
                         my_data.status ='requested_by';
                         contact_data.status = 'sent';
+                        await readNotification(my_data, contact_data, CONTACT_REQUEST)
+                        await sendNotification(my_data, contact_data._id, {message: {event:'RESEND', status: 'resend'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
                         io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
-                        console.log('emmited');
                         res.status(200).json({event:event_to_send, status: 'resent'})
                     } catch (error) {
                         res.status(500).json({error: error})
@@ -211,6 +218,8 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         })
                         my_data.status = 'rejected_by_contact'
                         contact_data.status = 'rejected_by_me'
+                        await readNotification(my_data, contact_data, CONTACT_REQUEST)
+                        await sendNotification(my_data, contact_data._id, {message: {event:'REJECTED', status: 'rejected'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
                         io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
                         res.status(200).json({message: 'rejected'})

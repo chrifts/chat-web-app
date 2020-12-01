@@ -125,14 +125,16 @@ export default class ChatFoot extends Vue {
         const theTextArea = this.$refs._textarea as HTMLElement;
         theTextArea.focus();
         const messageTime = Date.now();
-        
+        const myDataClean = this.mydata;
+        delete myDataClean.contacts
+        delete myDataClean.notifications
         this.newMessage = {
             timestamp: messageTime,
             message: this.messageText,
-            from: this.mydata,
+            from: myDataClean,
             to: this.chatSelected._id
         }
-
+        console.log(this.newMessage);
         //POST MESSAGE
         axiosRequest('POST', this.api + '/chat/post-message', {chatId: this.chatSelected.chatId, message: this.newMessage }, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
         // eslint-disable-next-line

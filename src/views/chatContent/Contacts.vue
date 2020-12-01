@@ -56,7 +56,8 @@
                 <v-list-item-avatar>
                   <img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'">
                 </v-list-item-avatar>
-                <v-badge v-if="mainNotifications['new-message']"
+                
+                <v-badge v-if="Object.keys(mainNotifications).length > 0 && mainNotifications.hasOwnProperty('new-message') && mainNotifications['new-message'][item._id] "
                   :content="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
                   :value="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
                   color="green"
@@ -90,9 +91,13 @@
                     @click="handleContactRequest(item._id, 'REJECTED')"
                   >reject</v-btn>
                 </v-list-item-content>
-                <v-menu offset-y>
-                    <template v-slot:activator="{ on, attrs }">
+                <v-menu 
+                  offset-y
+                  v-if="item.status == 'connecteds'"
+                >
+                    <template v-slot:activator="{ on, attrs }" >
                       <v-btn
+                      
                         color="black"
                         elevation="2"
                         icon
@@ -145,6 +150,7 @@ export default class Contacts extends Vue {
     this.newContactEmail = val;
   }
 
+  
   get mydata() {
     return this.$store.getters.user;
   }
@@ -161,12 +167,13 @@ export default class Contacts extends Vue {
 
   @Watch('$store.state.mainNotifications', {deep: true})
   onMainNotificationsChange(val: any) {
+    console.log(val); 
     this.mainNotifications = val;
   }
 
   selectChat(item: any) {
     this.$emit('chatSelected', item)
-    
+
   }
 
   orderBy(array, element, type) {
@@ -195,19 +202,22 @@ export default class Contacts extends Vue {
       throw new Error(error)
     }
   }
+  updated(){
+    console.log(this.mainNotifications);
+  }
   mounted() {
     this.contacts = this.orderBy(this.allContacts, 'lastMessage.timestamp', 'desc');
   }
 
 
   @Watch('$store.state.allContacts', { deep: true })
-  onChangeContacts(before: any, after: any) {
-    console.log(before, after);
-    if(after != before) {
-      const sorted = this.orderBy(after, 'lastMessage.timestamp', 'desc');
-      this.contacts = sorted
-      this.contactsLoading = false;
-    }
+  onChangeContacts(val: any) {
+    console.log(val);
+    // this.contacts = val;
+    // this.contactsLoading = false;
+    const sorted = this.orderBy(val, 'lastMessage.timestamp', 'desc');
+    this.contacts = sorted
+    this.contactsLoading = false;
   }
 
   async addContact(email: string) {

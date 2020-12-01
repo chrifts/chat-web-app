@@ -1,5 +1,6 @@
+import { Stats } from "fs";
 import { NEW_MESSAGE } from "../../constants";
-
+import { readNotification, sendNotification } from "../../helpers/index"
 const CM = require("../../models/chat.model");
 const UM = require("../../models/user.model");
 const ObjectID = require('mongodb').ObjectID;
@@ -33,26 +34,31 @@ const getOrCreate = async (req, res) => {
     }
 }
 
+
+
 function postMessage(io: any) {
     const notificationType = NEW_MESSAGE;
     const callback = async (req, res) => {
-        console.log(req.body)
+        const data = JSON.parse(JSON.stringify(req.body))
+        
         try {
             const chat = await CM.findOneAndUpdate(
                 {
-                    _id: req.body.chatId
+                    _id: data.chatId
                 },
                 {
                     $push: {
-                        messages: req.body.message
+                        messages: data.message
                     }
                 }
             )
             if(chat) {
-                io.of('/chat-'+req.body.chatId).emit('NEW_MESSAGE', req.body.message)
+                const event = data.message;
+                event.from = data.message.from._id;
+                io.of('/chat-'+data.chatId).emit('NEW_MESSAGE', event)
                 const chat = await CM.findOne(
                     {
-                        _id: req.body.chatId,
+                        _id: data.chatId,
                     }
                 ).lean()
                 let i = 0;
@@ -65,46 +71,26 @@ function postMessage(io: any) {
                     }, 
                     {
                         $set: {
-                            "contacts.$.lastMessage" : {message: req.body.message.message, timestamp: req.body.message.timestamp},
+                            "contacts.$.lastMessage" : {message: data.message.message, timestamp: data.message.timestamp},
                         }
                     })
                     i++;
                 }
 
-                console.log(req.body.message);
-                const sender = req.body.message.from;
-                delete sender.contacts;
-                delete sender.notifications;
                 
+                
+
+                console.log(data.message.from);
                 const notification = {
                     _id: ObjectID(),
-                    extraDataFrom: sender,
-                    from: req.body.message.from._id,
-                    message: req.body.message.message,
-                    timestamp: req.body.message.timestamp,
+                    extraDataFrom: data.message.from,
+                    from: JSON.parse(JSON.stringify(req.body.message.from)),
+                    message: data.message.message,
+                    timestamp: data.message.timestamp,
                     type: notificationType,
                 };
-                const user = await UM.findOneAndUpdate({
-                        _id: req.body.message.to,
-                    },
-                    {
-                        $push: {
-                            [`notifications.${notificationType}.${req.body.message.from._id}`]: notification
-                        },
-                        
-                    },{multi: true}
-                    
-                ).exec()
                 
-                chat.members.forEach(user_id => {
-                    if(user_id == req.body.message.to) {
-                        req.body.message.notification = notification;
-                    } else {
-                        req.body.message.notification = null;
-                    }
-                    io.of('/user-'+user_id).emit('MESSAGE_NOTIFICATION', req.body.message)    
-                });
-                
+                await sendNotification(notification.from, data.message.to, {message: notification.message, timestamp: notification.timestamp}, notificationType, io, 'MESSAGE_NOTIFICATION')                
                 res.status(200).json({message: chat})
             }
         } catch (error) {
@@ -121,14 +107,10 @@ const getMessages = async (req, res) => {
         //DELETE NEW-MESSAGE NOTIFICATIONS FROM CONTACT
         console.log(req.body)
         if(req.body.contact) {
-            const user = await UM.findOneAndUpdate({
-                _id: req.body.user._id,
-            },
-            {
-                $unset: [`notifications.${NEW_MESSAGE}.${req.body.contact._id}`],
-                
+            const status = await readNotification(req.body.user, req.body.contact, NEW_MESSAGE)
+            if(status == 'error') {
+                throw new Error('chat controller error')
             }
-            ).exec()
         }  
         
         res.status(200).json({messages: chat.messages})
