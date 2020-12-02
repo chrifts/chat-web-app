@@ -50,7 +50,6 @@ export default class ChatList extends Vue {
 
     @Watch('message')
     onNewMessage(msg: any) {
-        console.log(msg)
         this.messages.push(msg)
     }
     scrollOpts = {
@@ -101,11 +100,13 @@ export default class ChatList extends Vue {
     async mounted(){
         await this.loadChat(this.chatSelected)
     }
-    async loadChat(contact) {
-        console.log(contact)
-        const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: this.selectedChat.chatId, user: this.mydata, contact: contact}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
-        
-        this.messages = res.data.messages        
+    async loadChat(selectedChat) {
+        let theContact: any;
+        if(selectedChat && selectedChat._id) {
+            theContact = {_id: selectedChat._id}
+            const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: selectedChat.chatId, contact: theContact}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
+            this.messages = res.data.messages   
+        }
     }
 
     @Watch("chatWindowProp")

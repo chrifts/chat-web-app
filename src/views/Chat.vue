@@ -1,5 +1,5 @@
 <template>
-  <v-container id="chat">
+  <v-container id="chat" v-if="mainSocketStatus == 'connected'">
     <!-- DESKTOP -->
     <div class="main-content" v-if="!$vuetify.breakpoint.mobile">
       
@@ -58,6 +58,26 @@
       </v-col>
     </div>
   </v-container>
+  <v-container v-else>
+    <v-progress-linear
+      indeterminate
+      color="yellow darken-2"
+    ></v-progress-linear>
+
+    
+    <v-sheet
+      color="gray darken-2"
+      class="pa-3"
+    >
+      <v-skeleton-loader
+        class="mx-auto"
+        max-width="300"
+        type="card"
+      ></v-skeleton-loader>
+    </v-sheet>
+    
+    Waiting for server
+  </v-container>
 </template>
 
 <script lang="ts">
@@ -99,8 +119,18 @@ export default class Chat extends Vue {
   api = (this.$root as any).urlApi;
   newMessage = null;
 
+  mainSocketStatus = this.getSocketStatus;
+  @Watch('$store.state.mainAppSocketStatus')
+  onMainSocket(val) {
+    this.mainSocketStatus = val;
+  }
+
   get mydata() {
     return this.$store.getters.user;
+  }
+
+  get getSocketStatus() {
+    return this.$store.getters.mainAppSocketStatus;
   }
 
   async connectSocket() {
@@ -138,10 +168,7 @@ export default class Chat extends Vue {
   }
 
   @Watch('$store.state.selectedChat')
-  async onChangeChat(selected: any, before: any) {
-    // console.log('SELECTED CHAT',  selected, 'LAST CHAT: ', before);
-    //read notifications from selected and before
-    
+  async onChangeChat(selected: any, before: any) {    
     if(before) {
       await axiosRequest('POST', this.api + '/chat/clear-notifications', {leaved: before}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
       this.$store.commit('readChat', before._id);

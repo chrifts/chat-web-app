@@ -104,8 +104,6 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
         });
 
         socket.on('CONTACT_REQUEST', async (payload) => {
-            console.log(payload)
-            //add incoming Contact request to store
             store.commit('addContact', payload)
             if(payload.notification){
                 store.commit('updateNotifications', payload)
@@ -115,13 +113,8 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
 
     if(context == MAIN_APP_MESSAGES) {
         socket.on('MESSAGE_NOTIFICATION', (payload) => {
-            
-            //PAY LOAD TIENE LA NOTIFICACION CORRESPONDIENTE
             store.commit('updateContactLastMessage', payload)
             if(payload.notification) {
-                //UPDATE ONLY IF CHAT IS NOT SELECTED
-                console.log(payload)
-                console.log(store.getters.selectedChat)
                 if(store.getters.selectedChat){
                     if(payload.chatId != store.getters.selectedChat.chatId) {
                         store.commit('updateNotifications', payload)
@@ -129,12 +122,8 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
                 } else {
                     store.commit('updateNotifications', payload)
                 }
-                
             }
-            
-            //SEND A NOTIFICATION TO PAYLOAD MEMBERS (from to)
         });
-        
     }
 }
 

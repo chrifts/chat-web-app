@@ -61,6 +61,7 @@ export default class Login extends Vue {
   ];
   public password = "";
   public passwordRules = [(v: any) => !!v || "Password Required"];
+
   public async login() {
     if ((this.$refs.form as Vue & { validate: () => boolean }).validate()) {
       await this.loginUser();
@@ -74,7 +75,6 @@ export default class Login extends Vue {
         email: this.email,
         password: this.password
       })
-      console.log(user);
       this.$cookies.set('jwt', user.data.accessToken, {
         secure: false
       });
@@ -104,4 +104,6 @@ export default class Login extends Vue {
   }
 }
 </script>
-<style scoped></style>
+<style lang="scss" scoped>
+
+</style>

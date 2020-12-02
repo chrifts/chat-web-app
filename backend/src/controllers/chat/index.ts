@@ -99,9 +99,8 @@ const getMessages = async (req, res) => {
     try {
         const chat = await CM.findOne({_id: req.body.chatId}).lean()
         //DELETE NEW-MESSAGE NOTIFICATIONS FROM CONTACT
-        console.log(req.body)
         if(req.body.contact) {
-            const status = await readNotification(req.body.user, req.body.contact, NEW_MESSAGE)
+            const status = await readNotification(req.user, req.body.contact, NEW_MESSAGE)
             if(status == 'error') {
                 throw new Error('chat controller error')
             }

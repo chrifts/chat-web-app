@@ -78,8 +78,8 @@
                       :key="ix"
                     >
                       <div v-if="el.length > 0" :class="{'unread' : el[0].status == 'unread'}">
-                        <v-list-item-title v-if="notifType == 'new-message'">{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title>
-                        <v-list-item-title v-if="notifType == 'contact-request'"> 
+                        <v-list-item-title v-if="notifType == NEW_MESSAGE">{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title>
+                        <v-list-item-title v-if="notifType == CONTACT_REQUEST"> 
                           <!-- <span v-if="el[0].message.status == 'connecteds'"> accepted from</span> -->
                           <!-- {{debugFromTempate(el)}} -->
                           <!-- {{el[0].message.status}} -->
@@ -126,29 +126,24 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import store from '@/store/index'
 import { Watch, Prop, Model } from 'vue-property-decorator';
-
+import { CONTACT_REQUEST, NEW_MESSAGE } from "@/constants";
 import { axiosRequest } from '../helpers';
 
 @Component({})
 export default class NavBar extends Vue {
-
-  
-  
   @Model('change') socketStatus!: string;
-  
   @Watch('$store.state.mainAppSocketStatus')
-    onSocketStatusChange(ss: any) {
-        this.mainSocketStatus = ss;
-    }
-
+  onSocketStatusChange(ss: any) {
+      this.mainSocketStatus = ss;
+  }
   @Watch('isOpen')
   onOpenNotif(val){
-    console.log(val)
     if(!val) {
       this.readNotifications(this.mainNotifications)
     }
-  } 
-
+  }
+  NEW_MESSAGE = NEW_MESSAGE;
+  CONTACT_REQUEST = CONTACT_REQUEST;
   isOpen = false;
   mainSocketStatus = this.mainAppSocketStatus;
   chatSelected = this.selectedChat;
@@ -220,7 +215,7 @@ export default class NavBar extends Vue {
 
   async readNotifications(data) {
     if(this.totalNotifications > 0) {
-      console.log('reading notif')
+      
       await axiosRequest('POST', (this.$root as any).urlApi + '/user/read-notifications', {notifications: data}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
       this.$store.commit('readNotifications', data)
       this.hasNotifications = false;
@@ -231,12 +226,6 @@ export default class NavBar extends Vue {
   parseNotificationType(data) {
     let type;
     switch (data) {
-      // case 'new-message':
-      //   type = 'New message'
-      //   break;
-      // case 'contact-request':
-      //   type = 'Contact request'
-      //   break;
       case 'resend':
         type = 'User has resend contact request'
         break;
@@ -249,7 +238,6 @@ export default class NavBar extends Vue {
       default:
         break;
     }
-    // return type;
     return type;
   }
 
@@ -269,29 +257,21 @@ export default class NavBar extends Vue {
 
   @Watch('$store.state.mainNotifications', { deep : true, immediate: true })
   onMainNotificationsChange(val: any) {
-    console.log(val);
     let totalN = 0;
     Object.entries(val).forEach(([type, contacts])=> {
       if(Object.keys(contacts as {}).length > 0) {
         Object.entries(contacts as {}).forEach(([ix, contact])=> {
           (contact as []).forEach(notification => {
             if((notification as any).status == 'unread') {
-              console.log(notification)
               totalN++;
-              console.log(totalN)
             }
           });
-          // totalN += (contact as []).length;
         })
         if(totalN > 0) {
           this.hasNotifications = true;
           this.totalNotifications = totalN;
         }
       } 
-      // else {
-      //   this.hasNotifications = false;
-      //   this.totalNotifications = 0;
-      // } 
     })
     if(totalN < 1) {
       this.hasNotifications = false;
@@ -305,10 +285,10 @@ export default class NavBar extends Vue {
     this.loggedIn = val;
   }
   @Watch('$store.state.selectedChat')
-  onChangeChat(val: any) {    
-    this.chatSelected = val;
+  onChangeChat(val: any) {
     console.log(val);
-    if(val._id){
+    this.chatSelected = val;
+    if(val && val._id){
       this.$store.commit('readChat', val._id);
     }
     

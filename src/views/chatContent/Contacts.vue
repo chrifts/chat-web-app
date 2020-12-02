@@ -57,9 +57,9 @@
                   <img :src="'https://cdn.vuetifyjs.com/images/lists/1.jpg'">
                 </v-list-item-avatar>
                 
-                <v-badge v-if="Object.keys(mainNotifications).length > 0 && mainNotifications.hasOwnProperty('new-message') && mainNotifications['new-message'][item._id] "
-                  :content="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
-                  :value="mainNotifications['new-message'][item._id] ? mainNotifications['new-message'][item._id].length : null"
+                <v-badge v-if="Object.keys(mainNotifications).length > 0 && mainNotifications.hasOwnProperty(NEW_MESSAGE) && mainNotifications[NEW_MESSAGE][item._id] "
+                  :content="mainNotifications[NEW_MESSAGE][item._id] ? mainNotifications[NEW_MESSAGE][item._id].length : null"
+                  :value="mainNotifications[NEW_MESSAGE][item._id] ? mainNotifications[NEW_MESSAGE][item._id].length : null"
                   color="green"
                   overlap
                 ></v-badge>
@@ -137,11 +137,14 @@
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
 import { axiosRequest, emailRegex } from '@/helpers/index'
 import { Socket } from 'vue-socket.io-extended'
+import { CONTACT_REQUEST, NEW_MESSAGE } from "@/constants";
 import _ from 'lodash';
 
 @Component
 export default class Contacts extends Vue {
 
+  NEW_MESSAGE = NEW_MESSAGE;
+  CONTACT_REQUEST = CONTACT_REQUEST;
   lodash = _;
   newContactEmail = "";
   contacts = this.allContacts;
@@ -173,7 +176,6 @@ export default class Contacts extends Vue {
 
   @Watch('$store.state.mainNotifications', {deep: true})
   onMainNotificationsChange(val: any) {
-    console.log(val); 
     this.mainNotifications = val;
   }
 
@@ -187,9 +189,7 @@ export default class Contacts extends Vue {
   }
 
   async handleContactRequest(contactId: string, event: string, index: any) {
-    console.log(index)
     this.contacts[index].loading = true;
-    // this.contactsLoading = true;
     const myId = this.mydata._id;
 
     try {
@@ -219,9 +219,6 @@ export default class Contacts extends Vue {
 
   @Watch('$store.state.allContacts', { deep: true })
   onChangeContacts(val: any) {
-    console.log(val);
-    // this.contacts = val;
-    // this.contactsLoading = false;
     const sorted = this.orderBy(val, 'lastMessage.timestamp', 'desc');
     this.contacts = sorted
     this.contactsLoading = false;

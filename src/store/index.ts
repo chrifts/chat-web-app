@@ -8,7 +8,7 @@ Vue.use(Vuex);
 
 interface Notifications { 
   [type: string]: { 
-    [from: string]: any; 
+    [from: string]: Array<[]>; 
   }; 
 }
 const notif: Notifications = { };
@@ -22,6 +22,7 @@ export default new Vuex.Store({
     mainLoading: false,
     mainNotifications: notif,
     allContacts: [{
+      _id: String,
       status: String,
       lastMessage: String,
     }],
@@ -41,8 +42,8 @@ export default new Vuex.Store({
       state.mainNotifications = {...state.mainNotifications}
     },
     readChat(state, payload) {
-      if(state.mainNotifications['new-message'] && state.mainNotifications['new-message'][payload]){
-        delete state.mainNotifications['new-message'][payload]
+      if(state.mainNotifications[NEW_MESSAGE] && state.mainNotifications[NEW_MESSAGE][payload]){
+        delete state.mainNotifications[NEW_MESSAGE][payload]
         state.mainNotifications = {...state.mainNotifications}
       }
       
@@ -53,51 +54,46 @@ export default new Vuex.Store({
         state.mainNotifications = {...state.mainNotifications}
         return;
       }
-      console.log(payload);
       if(payload.notification) {
-        state.allContacts.forEach((contact: any, index) => { 
-          if(contact._id == payload.from) {
-            //console.log(state.mainNotifications);
-            if(state.mainNotifications[payload.type]) {
-              state.mainNotifications[payload.type][contact._id] ? null : state.mainNotifications[payload.type][contact._id] = [];
-              switch (payload.type) {
-                case NEW_MESSAGE:
-                  state.mainNotifications[payload.type][contact._id].push(payload)    
-                  break;
-                case CONTACT_REQUEST:
-                  state.mainNotifications[payload.type][contact._id] = []  
-                  state.mainNotifications[payload.type][contact._id].push(payload)
-                  break;
-                default:
-                  break;
-              }
-              
-              state.mainNotifications = {...state.mainNotifications}
-            } else {
-              state.mainNotifications[payload.type] = {}
-              state.mainNotifications[payload.type][contact._id] = []
-              switch (payload.type) {
-                case NEW_MESSAGE:
-                  state.mainNotifications[payload.type][contact._id].push(payload)    
-                  break;
-                case CONTACT_REQUEST:
-                  state.mainNotifications[payload.type][contact._id] = []  
-                state.mainNotifications[payload.type][contact._id].push(payload)
-                  break;
-                default:
-                  break;
-              }
-              state.mainNotifications = {...state.mainNotifications}
-            }
+        const contacto = state.allContacts.filter(contact => contact._id == payload.from);
+        const _cont = (contacto[0] as any)
+        if(state.mainNotifications[payload.type]) {
+          state.mainNotifications[payload.type][_cont._id] ? null : state.mainNotifications[payload.type][_cont._id] = [];
+          switch (payload.type) {
+            case NEW_MESSAGE:
+              state.mainNotifications[payload.type][_cont._id].push(payload)    
+              break;
+            case CONTACT_REQUEST:
+              state.mainNotifications[payload.type][_cont._id] = []  
+              state.mainNotifications[payload.type][_cont._id].push(payload)
+              break;
+            default:
+              break;
           }
-        })
+          
+          state.mainNotifications = {...state.mainNotifications}
+        } else {
+          state.mainNotifications[payload.type] = {}
+          state.mainNotifications[payload.type][_cont._id] = []
+          switch (payload.type) {
+            case NEW_MESSAGE:
+              state.mainNotifications[payload.type][_cont._id].push(payload)    
+              break;
+            case CONTACT_REQUEST:
+              state.mainNotifications[payload.type][_cont._id] = []  
+            state.mainNotifications[payload.type][_cont._id].push(payload)
+              break;
+            default:
+              break;
+          }
+          state.mainNotifications = {...state.mainNotifications}
+        }
       }
       if(payload.notifications) {
         state.mainNotifications = payload.notifications; 
       }
     },
     updateContactLastMessage(state, payload) {
-      console.log(payload);
       state.allContacts.forEach((contact: any, index) => {
         if(contact._id == payload.to || contact._id == payload.from) {
           state.allContacts[index].lastMessage = payload
@@ -151,9 +147,7 @@ export default new Vuex.Store({
       }
     },
     setUser(state, payload) {
-      //console.log(payload);
       state.user = payload;
-      
     },
     setStatus(state, payload) {
       state.status = payload;

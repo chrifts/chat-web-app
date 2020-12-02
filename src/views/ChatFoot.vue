@@ -103,7 +103,6 @@ export default class ChatFoot extends Vue {
 
     @Watch("$store.state.selectedChat")
     onChangedChat(val: any) {
-        console.log(val)
         this.chatSelected = val;
     }
     
@@ -134,8 +133,6 @@ export default class ChatFoot extends Vue {
             from: myDataClean,
             to: this.chatSelected._id
         }
-        console.log(this.newMessage);
-        //POST MESSAGE
         axiosRequest('POST', this.api + '/chat/post-message', {chatId: this.chatSelected.chatId, message: this.newMessage }, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
         // eslint-disable-next-line
         theTextArea.innerText = '';

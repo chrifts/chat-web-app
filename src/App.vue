@@ -17,7 +17,6 @@ import Vue from "vue";
 import { Watch } from "vue-property-decorator";
 import Component from "vue-class-component";
 import NavBar from "@/components/NavBar.vue";
-//main socket connection
 import VueSocketIOExt, { Socket } from 'vue-socket.io-extended'
 import { io } from 'socket.io-client';
 import { axiosRequest, defaultSocketEvents, customSocketEvents } from './helpers';
@@ -30,27 +29,24 @@ import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from './constants';
   }
 })
 export default class App extends Vue {
-
+  
   theUser = this.$store.getters.user;
   appLoading = false;
-
+  
   @Watch('$store.state.user')
   onUser(val: any) {
-   
    if(val) {
       this.theUser = val;
       this.$store.commit('setFirstLoad', true);
     }
   }
 
-  @Watch('$store.state.firstLoad') onFristLoadChanged(init: any) {
-    
-    if(init) {
-    
+  @Watch('$store.state.firstLoad') 
+  onFristLoadChanged(init: any) {
+    if(init) {    
       this.appInit()
     }
   }
-
 
   async appInit() {
     this.appLoading = true;
@@ -83,47 +79,47 @@ export default class App extends Vue {
 }
 </script>
 <style lang="scss">
-.v-application--wrap {
-  background: linear-gradient(rgb(245, 245, 245), rgb(218, 218, 218));
-}
-.mobile-container {
   .v-application--wrap {
-    #main-view {
-      height: 100%;
-    }
-    #chat {
-      padding: 0 !important;
-    }
-    padding-bottom: 75px !important;
-    z-index: 0;
+    background: linear-gradient(rgb(245, 245, 245), rgb(218, 218, 218));
   }
-}
-#app {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-
-#nav {
-  padding: 30px;
-
-  a {
-    font-weight: bold;
+  .mobile-container {
+    .v-application--wrap {
+      #main-view {
+        height: 100%;
+      }
+      #chat {
+        padding: 0 !important;
+      }
+      padding-bottom: 75px !important;
+      z-index: 0;
+    }
+  }
+  #app {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
     color: #2c3e50;
+  }
 
-    &.router-link-exact-active {
-      color: #42b983;
+  #nav {
+    padding: 30px;
+
+    a {
+      font-weight: bold;
+      color: #2c3e50;
+
+      &.router-link-exact-active {
+        color: #42b983;
+      }
     }
   }
-}
 </style>
