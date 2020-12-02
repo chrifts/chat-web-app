@@ -1,4 +1,3 @@
-import { Stats } from "fs";
 import { NEW_MESSAGE } from "../../constants";
 import { readNotification, sendNotification } from "../../helpers/index"
 const CM = require("../../models/chat.model");
@@ -34,8 +33,6 @@ const getOrCreate = async (req, res) => {
     }
 }
 
-
-
 function postMessage(io: any) {
     const notificationType = NEW_MESSAGE;
     const callback = async (req, res) => {
@@ -64,7 +61,6 @@ function postMessage(io: any) {
                 let i = 0;
                 //TODO: Make this for await fully dynamic
                 for await (const user_id of chat.members) {
-                    
                     const user = await UM.updateOne({
                         _id: chat.members[i],
                         "contacts.contact_id": chat.members[i+1 == 2 ? 0 : i+1]
@@ -76,11 +72,6 @@ function postMessage(io: any) {
                     })
                     i++;
                 }
-
-                
-                
-
-                console.log(data.message.from);
                 const notification = {
                     _id: ObjectID(),
                     extraDataFrom: data.message.from,
@@ -88,9 +79,12 @@ function postMessage(io: any) {
                     message: data.message.message,
                     timestamp: data.message.timestamp,
                     type: notificationType,
+                    to: data.message.to,
+                    chatId: chat._id
                 };
                 
-                await sendNotification(notification.from, data.message.to, {message: notification.message, timestamp: notification.timestamp}, notificationType, io, 'MESSAGE_NOTIFICATION')                
+                await sendNotification(notification.from, data.message.to, {message: notification.message, timestamp: notification.timestamp, chatId: notification.chatId}, notificationType, io, 'MESSAGE_NOTIFICATION')                
+                io.of('/user-'+notification.from._id).emit('MESSAGE_NOTIFICATION', notification)
                 res.status(200).json({message: chat})
             }
         } catch (error) {
@@ -121,8 +115,19 @@ const getMessages = async (req, res) => {
     
 }
 
+const clearNotifications = async (req, res) => {
+    console.log(req.body, req.user)
+    const status = await readNotification(req.user, req.body.leaved, NEW_MESSAGE)
+    if(status == 'error') {
+        res.json({error: 'error clearing notifications'})
+        throw new Error('chat controller error')
+    }
+    res.json({data: 'ok'})
+}
+
 export {
     getOrCreate,
     postMessage,
-    getMessages
+    getMessages,
+    clearNotifications
 }

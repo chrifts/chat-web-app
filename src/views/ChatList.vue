@@ -104,6 +104,7 @@ export default class ChatList extends Vue {
     async loadChat(contact) {
         console.log(contact)
         const res = await axiosRequest('POST', this.api + '/chat/get-messages', {chatId: this.selectedChat.chatId, user: this.mydata, contact: contact}, {headers: {"x-auth-token": this.$cookies.get('jwt')}})
+        
         this.messages = res.data.messages        
     }
 

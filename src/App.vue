@@ -5,7 +5,8 @@
         v-if="!$vuetify.breakpoint.mobile"  
         style="z-index: 1;"
       />
-      <router-view />
+      <router-view/>
+      
       <NavBar v-if="$vuetify.breakpoint.mobile" style="z-index: 1;" />
     </v-app>
   </div>

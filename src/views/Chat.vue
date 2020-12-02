@@ -138,15 +138,20 @@ export default class Chat extends Vue {
   }
 
   @Watch('$store.state.selectedChat')
-  onChangeChat(selected: any, before: any) {
+  async onChangeChat(selected: any, before: any) {
     // console.log('SELECTED CHAT',  selected, 'LAST CHAT: ', before);
     //read notifications from selected and before
-    //axiosRequest('POST', this.api + '/chat/read-notification', {leaved: before, selected: selected}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+    
+    if(before) {
+      await axiosRequest('POST', this.api + '/chat/clear-notifications', {leaved: before}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+      this.$store.commit('readChat', before._id);
+    }
     this.chatSelected = selected;
   }
 
   beforeDestroy(){
     console.log('unmout chat')
+    this.$store.commit('setSelectedChat', null);
     if(this.socket) {
       this.socket.disconnect();
     }
@@ -159,7 +164,7 @@ export default class Chat extends Vue {
   unsetSelectedChat() {
     this.chatWindow = false;
     this.chatSelected = false;
-    store.commit('setSelectedChat', false);
+    store.commit('setSelectedChat', null);
   }
 
 }

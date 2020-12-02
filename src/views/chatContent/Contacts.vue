@@ -46,10 +46,10 @@
       </v-row>
       <v-row>
         <v-col cols=12 style="padding: 0">
-          <v-list  three-line v-if="!contactsLoading">
+          <v-list three-line v-if="!contactsLoading">
             <template  v-for="(item, index) in contacts">
               <v-list-item
-                v-if="item.status != 'rejected_by_me'"
+                v-if="item.status != 'rejected_by_me' && !item.loading"
                 :key="index"
                 v-on="item.status == 'connecteds' ? { click: () => selectChat(item) } : {}"
               >
@@ -70,15 +70,15 @@
                   <v-list-item-subtitle v-if="item.status == 'sent'"> Pending </v-list-item-subtitle>
                   <div v-else-if="item.status == 'rejected_by_contact'">
                     <v-list-item-subtitle > Request rejected </v-list-item-subtitle>
-                    <v-btn @click="handleContactRequest(item._id, 'RESEND')">resend</v-btn>
-                    <v-btn @click="handleContactRequest(item._id, 'RESEND_CANCEL')">cancel</v-btn>
+                    <v-btn @click="handleContactRequest(item._id, 'RESEND', index)">resend</v-btn>
+                    <v-btn @click="handleContactRequest(item._id, 'RESEND_CANCEL', index)">cancel</v-btn>
                   </div>
                   
                   <v-list-item-subtitle v-if="item.status == 'connecteds'"> {{item.lastMessage ? item.lastMessage.message : 'Start chat'}} </v-list-item-subtitle>
 
                   <v-btn 
                     v-if="item.status == 'requested_by'" 
-                    @click="handleContactRequest(item._id, 'ACCEPTED')"
+                    @click="handleContactRequest(item._id, 'ACCEPTED', index)"
                     elevation="2"
                     icon
                     outlined
@@ -88,7 +88,7 @@
                     elevation="2"
                     icon
                     outlined
-                    @click="handleContactRequest(item._id, 'REJECTED')"
+                    @click="handleContactRequest(item._id, 'REJECTED', index)"
                   >reject</v-btn>
                 </v-list-item-content>
                 <v-menu 
@@ -122,6 +122,12 @@
               </v-list-item>
             </template>
           </v-list>
+          <!-- <v-list v-else>
+            <v-progress-linear
+              indeterminate
+              color="yellow darken-2"
+            ></v-progress-linear>
+          </v-list> -->
         </v-col>
       </v-row>
     </v-col>
@@ -173,15 +179,17 @@ export default class Contacts extends Vue {
 
   selectChat(item: any) {
     this.$emit('chatSelected', item)
-
+    this.$store.commit('readChat', item._id);
   }
 
   orderBy(array, element, type) {
     return this.lodash.orderBy(array, [element], [type]);
   }
 
-  async handleContactRequest(contactId: string, event: string) {
-    this.contactsLoading = true;
+  async handleContactRequest(contactId: string, event: string, index: any) {
+    console.log(index)
+    this.contacts[index].loading = true;
+    // this.contactsLoading = true;
     const myId = this.mydata._id;
 
     try {
@@ -195,20 +203,19 @@ export default class Contacts extends Vue {
           headers: {"x-auth-token": this.$cookies.get('jwt')
         }
       })
-      // console.log(response);
-      
+      this.$store.commit('readNotifications', this.mainNotifications)
+      this.contacts[index].loading = false;
+      this.contactsLoading = false;
         
     } catch (error) {
+      this.contactsLoading = false;
+      this.contacts[index].loading = false;
       throw new Error(error)
     }
-  }
-  updated(){
-    console.log(this.mainNotifications);
   }
   mounted() {
     this.contacts = this.orderBy(this.allContacts, 'lastMessage.timestamp', 'desc');
   }
-
 
   @Watch('$store.state.allContacts', { deep: true })
   onChangeContacts(val: any) {

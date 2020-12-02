@@ -149,9 +149,9 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         })
                         my_data.status = 'connecteds';
                         contact_data.status = 'connecteds';
-                        await sendNotification(my_data, contact_data._id, {message: {event:'ACCEPTED', status: 'connecteds'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
+                        await sendNotification(my_data, contact_data._id, {message: {event:'ACCEPTED', status: 'connecteds'}}, CONTACT_REQUEST, io, event_to_send)
                         await readNotification(my_data, contact_data, CONTACT_REQUEST)
-                        io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
+                        
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
                         res.status(200).json({event:'ACCEPTED', status: 'connecteds'})
                     } catch (error) {
@@ -184,8 +184,7 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         my_data.status ='requested_by';
                         contact_data.status = 'sent';
                         await readNotification(my_data, contact_data, CONTACT_REQUEST)
-                        await sendNotification(my_data, contact_data._id, {message: {event:'RESEND', status: 'resend'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
-                        io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
+                        await sendNotification(my_data, contact_data._id, {message: {event:'RESEND', status: 'resend'}}, CONTACT_REQUEST, io, event_to_send)
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
                         res.status(200).json({event:event_to_send, status: 'resent'})
                     } catch (error) {
@@ -219,8 +218,7 @@ function HANDLE_CONTACT_REQUEST(io: any) {
                         my_data.status = 'rejected_by_contact'
                         contact_data.status = 'rejected_by_me'
                         await readNotification(my_data, contact_data, CONTACT_REQUEST)
-                        await sendNotification(my_data, contact_data._id, {message: {event:'REJECTED', status: 'rejected'}}, CONTACT_REQUEST, io, 'CONTACT_REQUEST')
-                        io.of('/user-'+req.body.contactId).emit(event_to_send, my_data)
+                        await sendNotification(my_data, contact_data._id, {message: {event:'REJECTED', status: 'rejected'}}, CONTACT_REQUEST, io, event_to_send)
                         io.of('/user-'+req.body.myId).emit(event_to_send, contact_data)
                         res.status(200).json({message: 'rejected'})
                     } catch (error) {
@@ -280,8 +278,27 @@ function HANDLE_CONTACT_REQUEST(io: any) {
     return callback;
 }
 
+function READ_NOTIFICATIONS() {
+    const callback = async (req, res) => {
+        const notifications = req.body.notifications;
+        Object.entries(notifications).forEach(([ix, el])=>{
+            Object.entries(el).forEach(([i, e])=>{ 
+                e.forEach(notf => {
+                    notf.status = 'read'
+                });
+            })
+        })
+        console.log(req.user)
+        await UM.updateOne({_id: req.user._id}, {$set: {notifications: notifications}}).exec()
+        console.log(notifications);
+        res.json({data:'ok'})
+    }
+    return callback;
+}
+
 export {
     ADD_CONTACT,
     GET_CONTACTS,
-    HANDLE_CONTACT_REQUEST
+    HANDLE_CONTACT_REQUEST,
+    READ_NOTIFICATIONS
 }

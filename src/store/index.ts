@@ -28,6 +28,25 @@ export default new Vuex.Store({
     mainAppSocketStatus: 'connecting...'
   },
   mutations: {
+    readNotifications(state, payload) {
+      const notifications = payload;
+      Object.entries(notifications).forEach(([ix, el])=>{
+          Object.entries((el as {})).forEach(([i, e])=>{ 
+              (e as []).forEach(notf => {
+                  (notf as any).status = 'read'
+              });
+          })
+      })
+      state.mainNotifications = notifications;
+      state.mainNotifications = {...state.mainNotifications}
+    },
+    readChat(state, payload) {
+      if(state.mainNotifications['new-message'] && state.mainNotifications['new-message'][payload]){
+        delete state.mainNotifications['new-message'][payload]
+        state.mainNotifications = {...state.mainNotifications}
+      }
+      
+    },
     updateNotifications(state, payload){
       if(payload == 'logout') {
         state.mainNotifications = {};
@@ -78,10 +97,10 @@ export default new Vuex.Store({
       }
     },
     updateContactLastMessage(state, payload) {
+      console.log(payload);
       state.allContacts.forEach((contact: any, index) => {
         if(contact._id == payload.to || contact._id == payload.from) {
           state.allContacts[index].lastMessage = payload
-          
           state.allContacts = [...state.allContacts];
         }
       })

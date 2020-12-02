@@ -119,7 +119,17 @@ function customSocketEvents(socket: any,  context: string, store: any, auth?: {}
             //PAY LOAD TIENE LA NOTIFICACION CORRESPONDIENTE
             store.commit('updateContactLastMessage', payload)
             if(payload.notification) {
-                store.commit('updateNotifications', payload)
+                //UPDATE ONLY IF CHAT IS NOT SELECTED
+                console.log(payload)
+                console.log(store.getters.selectedChat)
+                if(store.getters.selectedChat){
+                    if(payload.chatId != store.getters.selectedChat.chatId) {
+                        store.commit('updateNotifications', payload)
+                    }
+                } else {
+                    store.commit('updateNotifications', payload)
+                }
+                
             }
             
             //SEND A NOTIFICATION TO PAYLOAD MEMBERS (from to)

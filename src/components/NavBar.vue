@@ -1,8 +1,8 @@
 <template>
   <div>
     <!-- DESKTOP -->
-    <v-toolbar color="primary" v-if="!$vuetify.breakpoint.mobile">
-      <v-toolbar-title>
+    <v-toolbar color="primary" :class="{'v-bottom-navigation v-item-group theme--light' : $vuetify.breakpoint.mobile, 'd-none' : chatSelected && $vuetify.breakpoint.mobile }">
+      <v-toolbar-title v-if="!$vuetify.breakpoint.mobile">
         <v-btn color="white" text :to="'/'">
           {{appName}}
         </v-btn>
@@ -21,7 +21,7 @@
         
       </v-toolbar-title>
       
-      <v-spacer></v-spacer>
+      <v-spacer v-if="!$vuetify.breakpoint.mobile"></v-spacer>
       
         <v-toolbar-items v-if="!loggedIn && !loading">
           <v-btn
@@ -37,15 +37,13 @@
           <v-spacer></v-spacer>
         </v-toolbar-items>
 
-        <v-toolbar-items v-if="loggedIn && !loading">
+        <v-toolbar-items v-if="loggedIn && !loading" >
 
-          <v-menu offset-y>
+          <v-menu offset-y
+            v-model="isOpen"
+          >
             <template v-slot:activator="{ on, attrs }">
-              
-
-              
               <v-btn
-                @click="hasNotifications = false"
                 color="white"
                 icon
                 v-bind="attrs"
@@ -71,19 +69,24 @@
                 :class="{'d-none': Object.keys(data).length < 1}"
               >
                 
-                  <span >{{parseNotificationType(notifType)}}</span>
+                  <!-- <span>{{parseNotificationType(notifType)}}</span> -->
+                  
                   <v-list class="not-list">
                     <!-- Loop users -->
                     <v-list-item
                       v-for="(el, ix) in data"
                       :key="ix"
                     >
-                      <v-list-item-title v-if="notifType == 'new-message'">{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title>
-                      <v-list-item-title v-if="notifType == 'contact-request'"> 
-                        <!-- <span v-if="el[0].message.status == 'connecteds'"> accepted from</span> -->
-                        {{el[0].message.status}} 
-                      </v-list-item-title>
-                      <v-list-item-subtitle>{{ el[0].extraDataFrom.email }}</v-list-item-subtitle>                    
+                      <div v-if="el.length > 0" :class="{'unread' : el[0].status == 'unread'}">
+                        <v-list-item-title v-if="notifType == 'new-message'">{{ el.length }} {{el.length > 1 ? 'messages' : 'message'}} from </v-list-item-title>
+                        <v-list-item-title v-if="notifType == 'contact-request'"> 
+                          <!-- <span v-if="el[0].message.status == 'connecteds'"> accepted from</span> -->
+                          <!-- {{debugFromTempate(el)}} -->
+                          <!-- {{el[0].message.status}} -->
+                          {{parseNotificationType(el[0].message.status)}} 
+                        </v-list-item-title>
+                        <v-list-item-subtitle>{{ el[0].extraDataFrom.email }}</v-list-item-subtitle>  
+                      </div> 
                     </v-list-item>
                   </v-list>
                 
@@ -96,7 +99,7 @@
             {{ item.title }}
             <v-icon right color="white">{{ item.icon }}</v-icon>
           </v-btn>
-          <v-spacer></v-spacer>
+          <v-spacer v-if="!$vuetify.breakpoint.mobile"></v-spacer>
 
           <v-btn text color="white" @click="logout">
             Logout
@@ -114,16 +117,7 @@
         color="red darken-2"
       ></v-progress-linear>
       Loading...
-    </div>
-    <!-- MOBILE -->
-    <v-bottom-navigation v-if="$vuetify.breakpoint.mobile && !chatSelected" class="bottom-nav content-between" :class="{'bottom-nav-no-chat' : $router.currentRoute.name != 'Chat'}">
-      <v-btn text v-for="item in itemsAuth" :key="item.title" :to="item.link">
-        <span>{{ item.title }}</span>
-        <v-icon center>{{ item.icon }}</v-icon>
-      </v-btn>
-    </v-bottom-navigation>
-    <span>{{loggedIn ? loggedIn.email : ''}}</span>
-    
+    </div>    
   </div>
 </template>
 
@@ -132,17 +126,30 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import store from '@/store/index'
 import { Watch, Prop, Model } from 'vue-property-decorator';
+
 import { axiosRequest } from '../helpers';
 
 @Component({})
 export default class NavBar extends Vue {
 
+  
+  
   @Model('change') socketStatus!: string;
+  
   @Watch('$store.state.mainAppSocketStatus')
     onSocketStatusChange(ss: any) {
         this.mainSocketStatus = ss;
     }
 
+  @Watch('isOpen')
+  onOpenNotif(val){
+    console.log(val)
+    if(!val) {
+      this.readNotifications(this.mainNotifications)
+    }
+  } 
+
+  isOpen = false;
   mainSocketStatus = this.mainAppSocketStatus;
   chatSelected = this.selectedChat;
   loading = false;
@@ -168,8 +175,8 @@ export default class NavBar extends Vue {
     ];
     return menuItems;
   }
-  setTotalNotif(q) {
-    this.totalNotifications+=q;
+  debugFromTempate(q) {
+    console.log(q);
   }
   get itemsAuth() {
     const menuItems = [
@@ -211,18 +218,38 @@ export default class NavBar extends Vue {
     return this.$store.getters.selectedChat;
   }
 
+  async readNotifications(data) {
+    if(this.totalNotifications > 0) {
+      console.log('reading notif')
+      await axiosRequest('POST', (this.$root as any).urlApi + '/user/read-notifications', {notifications: data}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+      this.$store.commit('readNotifications', data)
+      this.hasNotifications = false;
+      this.totalNotifications = 0;
+    }
+  }
+
   parseNotificationType(data) {
     let type;
     switch (data) {
-      case 'new-message':
-        type = 'New message'
+      // case 'new-message':
+      //   type = 'New message'
+      //   break;
+      // case 'contact-request':
+      //   type = 'Contact request'
+      //   break;
+      case 'resend':
+        type = 'User has resend contact request'
         break;
-      case 'contact-request':
-        type = 'Contact request'
+      case 'connecteds':
+        type = 'New contact!'
+        break;
+      case 'rejected':
+        type = 'Contact has rejected your request'
         break;
       default:
         break;
     }
+    // return type;
     return type;
   }
 
@@ -240,25 +267,37 @@ export default class NavBar extends Vue {
     this.loading = val;
   }
 
-  // mounted(){
-
-  // }
-
   @Watch('$store.state.mainNotifications', { deep : true, immediate: true })
   onMainNotificationsChange(val: any) {
+    console.log(val);
     let totalN = 0;
     Object.entries(val).forEach(([type, contacts])=> {
       if(Object.keys(contacts as {}).length > 0) {
         Object.entries(contacts as {}).forEach(([ix, contact])=> {
-          totalN += (contact as []).length;
+          (contact as []).forEach(notification => {
+            if((notification as any).status == 'unread') {
+              console.log(notification)
+              totalN++;
+              console.log(totalN)
+            }
+          });
+          // totalN += (contact as []).length;
         })
-        this.hasNotifications = true;
-        this.totalNotifications = totalN;
+        if(totalN > 0) {
+          this.hasNotifications = true;
+          this.totalNotifications = totalN;
+        }
       } 
+      // else {
+      //   this.hasNotifications = false;
+      //   this.totalNotifications = 0;
+      // } 
     })
-    
+    if(totalN < 1) {
+      this.hasNotifications = false;
+      this.totalNotifications = 0;
+    }
     this.mainNotifications = val;
-    console.log(this.mainNotifications);
   }
 
   @Watch('$store.state.user')
@@ -268,22 +307,50 @@ export default class NavBar extends Vue {
   @Watch('$store.state.selectedChat')
   onChangeChat(val: any) {    
     this.chatSelected = val;
+    console.log(val);
+    if(val._id){
+      this.$store.commit('readChat', val._id);
+    }
+    
   }
 }
 </script>
-
 <style lang="scss">
-.v-badge--dot .v-badge__badge {
-  margin-bottom: 3px !important;
+  .v-badge--dot .v-badge__badge {
+    margin-bottom: 3px !important;
+  }
+  .not-list {
+    width: 100%;
+  }
+</style>
+<style lang="scss" scoped>
+.unread {
+  background-color: #cbcbcb;
+  border-radius: 5px;
+  padding: 6px 10px;
 }
-.not-list {
-  width: 100%;
+@media (max-width: 599px) {
+  .v-toolbar__content, .v-toolbar__extension, .v-toolbar__items {
+    width: 100%;
+  }
+  .v-item-group.v-bottom-navigation .v-btn {
+    min-width: 60px !important;
+  }
+  .v-toolbar__content, .v-toolbar__extension {
+    padding: 0 !important;
+  }
+  .v-menu__content {
+    max-width: 100%;
+    width: 100%;
+    left: 0 !important;
+    top: 0 !important;
+    height: calc(100% - 57px);
+    border: none;
+    border-radius: 0 !important;
+    box-shadow: none;
+  }
+  .v-list-item {
+    display: block;
+  }
 }
-.bottom-nav {
-  z-index: 2;
-}
-.content-between {
-  justify-content: space-between !important;
-}
-
 </style>

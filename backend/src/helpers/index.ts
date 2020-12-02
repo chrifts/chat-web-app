@@ -11,8 +11,10 @@ async function sendNotification(from, to, message, type, io?, socketEvent?){
             to: to,
             message: message.message,
             timestamp: message.timestamp,
+            chatId: message.chatId,
             type: type,
-            notification: true
+            notification: true,
+            status: 'unread'
         };
         const user = await UM.findOneAndUpdate({
                 _id: to,
@@ -34,7 +36,6 @@ async function sendNotification(from, to, message, type, io?, socketEvent?){
 }
 
 async function readNotification(to, from, type ) {
-    console.log(to, from);
     try {
         const usr = await UM.findOneAndUpdate({
             _id: to._id,
