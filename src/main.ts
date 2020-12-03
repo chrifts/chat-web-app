@@ -2,14 +2,15 @@ import Vue from "vue";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
-// import * as firebase from "firebase/app";
-// import "firebase/auth";
-// import "firebase/firestore";
 import vuetify from "./plugins/vuetify";
 import dotenv from 'dotenv';
 import { axiosRequest } from './helpers/index'
 import VueCookies, { CookiesOption } from "vue-cookies-ts"
 Vue.use(VueCookies);
+import VueSocketIOExt, { Socket } from 'vue-socket.io-extended'
+import { io } from 'socket.io-client';
+import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from './constants';
+import { defaultSocketEvents, customSocketEvents } from './helpers';
 
 dotenv.config();
 
@@ -44,6 +45,12 @@ const init = () => {
           const user = await axiosRequest('POST', urlApi + '/get-user', {}, {headers: {"x-auth-token": sessionToken}})
           if(user.data.email) {
             store.commit("setUser", user.data);
+            //join main socket namespace
+            const socket = io(process.env.VUE_APP_SOCKET_URL + '/user-'+user.data._id);
+            Vue.use(VueSocketIOExt, socket, { store });
+            defaultSocketEvents(socket, {store: store, context: 'mainSocket'});
+            customSocketEvents(socket, MAIN_APP_CONTACT_HANDLER, store, { user: user.data, jwtKey: sessionToken })
+            customSocketEvents(socket, MAIN_APP_MESSAGES, store)
             store.commit("setMainLoading", false);
             return;
           }
@@ -77,7 +84,9 @@ const init = () => {
             
             store.commit("setUser", user);
             store.commit("setMainLoading", false);
-            router.push({ name: "Home" });
+            if(!store.getters.firstLoad) {
+              router.push({ name: "Home" });
+            }
           } else {
             store.commit("setUser", null);
             store.commit("setMainLoading", false);

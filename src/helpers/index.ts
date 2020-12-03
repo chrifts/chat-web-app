@@ -31,16 +31,7 @@ const emailRegex = (email: string) => {
     return false;
 }
 
-// const chatKey = (myuid: string, contactUid: string) => {
-//     if(myuid < contactUid){
-//         return myuid+contactUid;  
-//       }
-//     else{
-//         return contactUid+myuid;
-//     }
-// }
-
-function defaultSocketEvents (socket: any, opts?: {context?: string, store: any}) {
+function defaultSocketEvents (socket: any, opts?: {context?: string, store?: any}) {
     //context = context app (main app or selectedChat)
 
     // connect	            Fired upon connection (including a successful reconnection)
@@ -55,25 +46,46 @@ function defaultSocketEvents (socket: any, opts?: {context?: string, store: any}
     // ping	                Fired when a ping is sent to the server
     // pong	                Fired when a pong is received from the server
     let socketStatus = '';
-
+    console.log(socket);
     socket.on('connect', ()=>{
         console.log('connected', socket)
-        if(opts?.store) {
+        if(opts?.context == 'mainSocket' ) {
             socketStatus = 'connected';
             opts?.store.commit('setMainAppSocketStatus', socketStatus)
         }
     })
-    socket.on('error', (error)=>{
+    socket.on('connect_error', (error)=>{
         console.log('socket error: ', error, socket)
-        if(opts?.store) {
+        if(opts?.context == 'mainSocket' ) {
             socketStatus = 'error';
+            opts?.store.commit('setMainAppSocketStatus', socketStatus)
+        }
+    })
+    socket.on('connect_timeout', (error)=>{
+        console.log('socket error: ', error, socket)
+        if(opts?.context == 'mainSocket' ) {
+            socketStatus = 'connection timeout';
             opts?.store.commit('setMainAppSocketStatus', socketStatus)
         }
     })
     socket.on('disconnect', (res)=>{
         console.log('disconnected: ', res, socket)
-        if(opts?.store) {
+        if(opts?.context == 'mainSocket' ) {
             socketStatus = 'disconnected';
+            opts?.store.commit('setMainAppSocketStatus', socketStatus)
+        }
+    })
+    socket.on('reconnect_attempt', (res)=>{
+        console.log('reconnect_attempt: ', res, socket)
+        if(opts?.context == 'mainSocket' ) {
+            socketStatus = 'reconnect attempt';
+            opts?.store.commit('setMainAppSocketStatus', socketStatus)
+        }
+    })
+    socket.on('reconnect', (res)=>{
+        console.log('reconnect: ', res, socket)
+        if(opts?.context == 'mainSocket' ) {
+            socketStatus = 'reconnect';
             opts?.store.commit('setMainAppSocketStatus', socketStatus)
         }
     })

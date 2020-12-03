@@ -20,8 +20,9 @@ const app: express.Application = express();
 //     })
 // )
 app.use(cors())
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({limit: "16mb", extended: true, parameterLimit:50000}));
+app.use(express.json({limit: "16mb"}));
+
 const http = require("http").Server(app);
 const io = require('socket.io')(http, {
     cors: {

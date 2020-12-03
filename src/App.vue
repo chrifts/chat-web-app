@@ -17,11 +17,11 @@ import Vue from "vue";
 import { Watch } from "vue-property-decorator";
 import Component from "vue-class-component";
 import NavBar from "@/components/NavBar.vue";
-import VueSocketIOExt, { Socket } from 'vue-socket.io-extended'
-import { io } from 'socket.io-client';
-import { axiosRequest, defaultSocketEvents, customSocketEvents } from './helpers';
+// import VueSocketIOExt, { Socket } from 'vue-socket.io-extended'
+// import { io } from 'socket.io-client';
+import { axiosRequest } from './helpers';
 import store from './store/index'
-import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from './constants';
+// import { MAIN_APP_CONTACT_HANDLER, MAIN_APP_MESSAGES } from './constants';
 
 @Component({
   components: {
@@ -34,16 +34,21 @@ export default class App extends Vue {
   appLoading = false;
   
   @Watch('$store.state.user')
-  onUser(val: any) {
+  onUser(val: any, after: any) {
+   console.log(after);
    if(val) {
       this.theUser = val;
-      this.$store.commit('setFirstLoad', true);
+      if(!this.$store.getters.firstLoad) {
+        this.$store.commit('setFirstLoad', true);
+      }
     }
   }
 
   @Watch('$store.state.firstLoad') 
   onFristLoadChanged(init: any) {
-    if(init) {    
+    console.log('fistLoad: ', init)
+    if(init) {
+      this.$socket.client.connect();
       this.appInit()
     }
   }
@@ -60,15 +65,36 @@ export default class App extends Vue {
       await this.$store.dispatch('GET_CONTACTS', { user: fullUser.data, jwtKey: sessionToken })
       //save user data
       this.$store.dispatch('SET_USER', fullUser.data);          
-      //join main socket namespace
-      const socket = io(process.env.VUE_APP_SOCKET_URL + '/user-'+fullUser.data._id);
-      Vue.use(VueSocketIOExt, socket, { store });
       this.appLoading = false;
       //listen socket events
+    }
+  }
 
-      defaultSocketEvents(socket, {store: this.$store});
-      customSocketEvents(socket, MAIN_APP_CONTACT_HANDLER, this.$store, { user: fullUser.data, jwtKey: sessionToken })
-      customSocketEvents(socket, MAIN_APP_MESSAGES, this.$store)
+  mounted(){
+    this.$root.$on('connectToMainSocket', ()=>{
+        console.log('connectToMainSocket')
+        if(this.$socket.client.disconnected) {
+          this.$socket.client.connect()
+        }
+      })
+      this.$root.$on('disconnectAllSockets', ()=>{
+        if(this.$socket.client) {
+          this.$socket.client.disconnect();
+          console.log('Disconnect current main socket: ', this.$socket.client)
+        } else {
+          console.log('chat socket == false')
+        }
+      })
+  }
+
+  @Watch('$store.state.mainAppSocketStatus' )
+  onMainSocketChange(s: any) {
+    console.log(s);
+    if(s == 'connected') {
+      this.appInit()  
+    }
+    if(s == 'disconnected') {
+      // this.$socket.client.connect();
     }
   }
 

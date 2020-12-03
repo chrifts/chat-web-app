@@ -1,32 +1,73 @@
 <template>
-  <v-container id="chat" v-if="mainSocketStatus == 'connected'">
+  <v-container id="chat">
     <!-- DESKTOP -->
-    <div class="main-content" v-if="!$vuetify.breakpoint.mobile">
+    <div :class="{'main-content' : !$vuetify.breakpoint.mobile, 'main-content-mobile' : $vuetify.breakpoint.mobile}">
       
-      <Contacts 
+       
+      <template v-if="$vuetify.breakpoint.mobile">
+        <Contacts 
+        v-if="!chatSelected && mainSocketStatus == 'connected'"
         @chatSelected="focusChat"
-      />
-      
-      <v-col cols="8" style="padding: 0 !important">
-        <div class="chat-main-view">
-          <div v-if="!chatSelected">
-            <span style="position: relative; top: 300px;">Choose a chat</span>
+        />
+      </template>
+      <template v-else>
+        <Contacts 
+        v-if="mainSocketStatus == 'connected'"
+        @chatSelected="focusChat"
+        />
+      </template>
+      <v-col :cols="$vuetify.breakpoint.mobile ? 12 : 2" v-if="mainSocketStatus == 'error'"></v-col>
+      <v-col :cols="$vuetify.breakpoint.mobile ? 12 : 8" style="padding: 0 !important">
+        <div class="chat-main-view" v-if="mainSocketStatus == 'connected'">
+          <div class="center_content" v-if="!chatSelected">
+            <p>Choose a chat</p>
           </div>
-          <h1 class="header-block" 
-            v-if="chatSelected">{{ chatSelected.profile.name + ' ' + chatSelected.profile.lastName  }}
-          </h1>
-          <ChatList v-if="chatSelected" 
+          <div class="header-block" v-if="chatSelected ">
+            <v-row>
+              <v-col cols=2 v-if="$vuetify.breakpoint.mobile">
+                <v-btn outlined elevation="1" color="white" icon @click="unsetSelectedChat()"> 
+                  <v-icon color="white">
+                    mdi-chevron-left
+                  </v-icon> 
+                </v-btn>
+              </v-col>
+              <v-col :cols="$vuetify.breakpoint.mobile ? 10 : 12">
+                <h3 class="text-left mt-1" v-if="socket.connected">{{ chatSelected.profile.name + ' ' + chatSelected.profile.lastName  }}</h3>
+                <v-progress-circular
+                  v-else
+                  indeterminate
+                  color="primary"
+                />
+              </v-col>
+            </v-row>
+          </div>
+          <ChatList v-if="chatSelected " 
             :chatWindowProp="chatWindow"
             :message="newMessage ? newMessage : null"
           />
-          <ChatFoot v-if="chatSelected"
+          <ChatFoot v-if="chatSelected " 
             :chatWindowProp="chatWindow" 
           />
+        </div>
+        <div class="chat-main-view" v-else>
+          <div class="center_content">
+            <template v-if="mainSocketStatus == 'error'">
+              <p>Error conecting to server</p>  
+            </template>
+            <template v-if="mainSocketStatus == 'reconnecting'">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              />
+              <p>Reconnecting...</p>
+            </template>
+            
+          </div>
         </div>
       </v-col>
     </div>
     <!-- MOBILE -->
-    <div class="main-content-mobile" v-else>
+    <!-- <div class="main-content-mobile" v-else>
       <Contacts @chatSelected="focusChat" v-if="!chatSelected" />
       <v-col cols="12" v-if="chatSelected" style="padding: 0 !important">
         <div class="chat-main-view">
@@ -56,27 +97,7 @@
           />
         </div>
       </v-col>
-    </div>
-  </v-container>
-  <v-container v-else>
-    <v-progress-linear
-      indeterminate
-      color="yellow darken-2"
-    ></v-progress-linear>
-
-    
-    <v-sheet
-      color="gray darken-2"
-      class="pa-3"
-    >
-      <v-skeleton-loader
-        class="mx-auto"
-        max-width="300"
-        type="card"
-      ></v-skeleton-loader>
-    </v-sheet>
-    
-    Waiting for server
+    </div> -->
   </v-container>
 </template>
 
@@ -115,7 +136,7 @@ export default class Chat extends Vue {
     y: true
   }
   chatRoom: string;
-  socket;
+  socket: boolean | any = false;
   api = (this.$root as any).urlApi;
   newMessage = null;
 
@@ -149,7 +170,22 @@ export default class Chat extends Vue {
             this.socket.on('NEW_MESSAGE', (msg)=>{
                 this.newMessage = msg
             })
-            defaultSocketEvents(this.socket);
+            defaultSocketEvents(this.socket, {context: 'selectedChat'});
+            
+            // this.$root.$on('disconnectAllSockets', ()=>{
+            //   if(this.socket) {
+            //     console.log('Disconnect socket: ', this.socket)
+            //     this.socket.disconnect();
+            //   } else {
+            //     console.log('chat socket == false')
+            //   }
+            // })
+            // this.$root.$on('connectToMainSocket', ()=>{
+            //   console.log('connect chat socket: ',this.socket)
+            //   if(this.socket.disconnected) {
+            //     this.socket.connect();
+            //   }
+            // })
             //DOCS: https://socket.io/docs/v3/client-api/index.html
         }
   }
@@ -170,7 +206,7 @@ export default class Chat extends Vue {
   @Watch('$store.state.selectedChat')
   async onChangeChat(selected: any, before: any) {    
     if(before) {
-      await axiosRequest('POST', this.api + '/chat/clear-notifications', {leaved: before}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
+      await axiosRequest('POST', this.api + '/chat/clear-notifications', {leaved: {_id : before._id}}, {headers:{"x-auth-token":this.$cookies.get('jwt')}})
       this.$store.commit('readChat', before._id);
     }
     this.chatSelected = selected;
@@ -198,119 +234,122 @@ export default class Chat extends Vue {
 </script>
 
 <style lang="scss">
-
-.textarea-div {
-  padding: 8px 10px;
-  flex: 1 1 auto;
-  box-sizing: border-box;
-  width: inherit;
-  min-width: 0;
-  min-height: 20px;
-  font-weight: 400;
-  font-size: 15px;
-  line-height: 20px;
-  outline: none;
-  will-change: width;
-  .textarea {
+  .center_content {
     position: relative;
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    cursor: text;
-    .label {
-      position: absolute;
-      top: 2px;
-      z-index: 100;
-      z-index: 2;
-      color: var(--input-placeholder);
-      font-size: 15px;
-      line-height: 20px;
-      transition: opacity .08s linear;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      pointer-events: none;
-    }
-    .writehere {
-      background-color: white;
-      text-align: left;
-      width: 100%;
-      border-radius: 6px;
+    top: 50%;
+  }
+  .textarea-div {
+    padding: 8px 10px;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    width: inherit;
+    min-width: 0;
+    min-height: 20px;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 20px;
+    outline: none;
+    will-change: width;
+    .textarea {
       position: relative;
-      z-index: 1;
-      min-height: 25px;
-      max-height: 100px;
-      overflow-x: hidden;
-      overflow-y: auto;
-      color: var(--compose-primary);
-      font-weight: 400;
-      font-size: 15px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      outline: none;
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      cursor: text;
+      .label {
+        position: absolute;
+        top: 2px;
+        z-index: 100;
+        z-index: 2;
+        color: var(--input-placeholder);
+        font-size: 15px;
+        line-height: 20px;
+        transition: opacity .08s linear;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        pointer-events: none;
+      }
+      .writehere {
+        background-color: white;
+        text-align: left;
+        width: 100%;
+        border-radius: 6px;
+        position: relative;
+        z-index: 1;
+        min-height: 25px;
+        max-height: 100px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        color: var(--compose-primary);
+        font-weight: 400;
+        font-size: 15px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        outline: none;
+      }
     }
   }
-}
 
-#chat {
+  #chat {
+      position: relative;
+      z-index: 100;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+  }
+  .main-content {
     position: relative;
-    z-index: 100;
+    top: 0;
+    display: flex;
     width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
     height: 100%;
     overflow: hidden;
-}
-.main-content {
-  position: relative;
-  top: 0;
-  display: flex;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  height: 100%;
-  overflow: hidden;
-  box-shadow: 0 4px 9px 0 rgba(0, 0, 0, 0.5), 0 7px 4px 0 rgba(70, 70, 70, 0.2);
-}
-.main-content-mobile {
-  position: relative;
-  top: 0;
-  display: flex;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  height: 100%;
-  overflow: hidden;
-  .header-block {
-    background-color: $main_1;
-    color: white;
+    box-shadow: 0 4px 9px 0 rgba(0, 0, 0, 0.5), 0 7px 4px 0 rgba(70, 70, 70, 0.2);
   }
-}
-.chat-main-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  transition: background-color .3s;
-}
-.header-block {
-  box-shadow: 0pt 0pt 9pt 0pt #b8b8b8;
-  z-index: 1;
-  background-color: #fff;
-  height: 72px;
-  color: rgb(59, 59, 59);
-  padding: 10px;
-  position: relative;
-  display: flex;
-  order: 1;
-}
-.chat-list-block {
-  background: radial-gradient(white, rgb(230, 230, 230));
-  overflow-y: scroll;
-  position: relative;
-  display: block;
-  order: 2;
-  flex: 1 1 0;
+  .main-content-mobile {
+    position: relative;
+    top: 0;
+    display: flex;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    height: 100%;
+    overflow: hidden;
+    .header-block {
+      background-color: $main_1;
+      color: white;
+    }
+  }
+  .chat-main-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: background-color .3s;
+  }
+  .header-block {
+    box-shadow: 0pt 0pt 9pt 0pt #b8b8b8;
+    z-index: 1;
+    background-color: #fff;
+    height: 72px;
+    color: rgb(59, 59, 59);
+    padding: 10px;
+    position: relative;
+    display: flex;
+    order: 1;
+  }
+  .chat-list-block {
+    background: radial-gradient(white, rgb(230, 230, 230));
+    overflow-y: scroll;
+    position: relative;
+    display: block;
+    order: 2;
+    flex: 1 1 0;
 
-}
+  }
 
 
 </style>

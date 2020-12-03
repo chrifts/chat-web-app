@@ -7,10 +7,9 @@
           {{appName}}
         </v-btn>
         <v-badge
-          
           inline
           dot
-          v-if="loggedIn && mainSocketStatus && !loading"
+          v-if="loggedIn && !loading"
           :color="mainSocketStatus == 'connected' ? 'green' : 'red'"
         >
           <span class="text-subtitle-1 text--disabled" title='Main socket status'>
@@ -20,7 +19,14 @@
         
         
       </v-toolbar-title>
-      
+      <v-toolbar-items v-if="debugSwitch">
+        <v-sheet class="pa-4" color="primary">
+          <v-switch
+            color="success"
+            v-model="switchSocket"
+          ></v-switch>
+        </v-sheet>
+      </v-toolbar-items>
       <v-spacer v-if="!$vuetify.breakpoint.mobile"></v-spacer>
       
         <v-toolbar-items v-if="!loggedIn && !loading">
@@ -132,19 +138,12 @@ import { axiosRequest } from '../helpers';
 @Component({})
 export default class NavBar extends Vue {
   @Model('change') socketStatus!: string;
-  @Watch('$store.state.mainAppSocketStatus')
-  onSocketStatusChange(ss: any) {
-      this.mainSocketStatus = ss;
-  }
-  @Watch('isOpen')
-  onOpenNotif(val){
-    if(!val) {
-      this.readNotifications(this.mainNotifications)
-    }
-  }
+  
   NEW_MESSAGE = NEW_MESSAGE;
   CONTACT_REQUEST = CONTACT_REQUEST;
+  debugSwitch = true;
   isOpen = false;
+  switchSocket = this.mainAppSocketStatus == 'connected' ? true : false;
   mainSocketStatus = this.mainAppSocketStatus;
   chatSelected = this.selectedChat;
   loading = false;
@@ -154,7 +153,32 @@ export default class NavBar extends Vue {
   readed = false;
   hasNotifications = false;
   totalNotifications = 0;
-
+  @Watch('$store.state.mainAppSocketStatus')
+  onSocketStatusChange(ss: any) {
+    this.mainSocketStatus = ss;
+    if(ss == 'connected') {
+      this.switchSocket = true;
+    } else {
+      this.switchSocket = false;
+    }
+  }
+  @Watch('isOpen')
+  onOpenNotif(val){
+    if(!val) {
+      this.readNotifications(this.mainNotifications)
+    }
+  }
+  @Watch('switchSocket')
+  onSwitchSocket(val){
+    console.log(val);
+    if(val) {
+      this.$root.$emit('connectToMainSocket');
+    } else {
+      //this.$socket.client.disconnect()
+      this.$root.$emit('disconnectAllSockets');
+    }
+    
+  }
   get itemsNoAuth() {
     const menuItems = [
       {

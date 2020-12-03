@@ -1,6 +1,4 @@
 <template>
-        
-
     <div class="chat-list-block px-3" id="chat-list"> 
         <ResizeSensor @resized="onResize" :debounce="50"></ResizeSensor>
         <v-progress-linear
